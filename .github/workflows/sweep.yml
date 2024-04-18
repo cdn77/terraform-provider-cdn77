@@ -1,0 +1,25 @@
+name: Sweep
+
+on: workflow_dispatch
+
+permissions:
+    contents: read
+
+jobs:
+    sweep:
+        concurrency:
+            group: acctests
+        name: Run Acceptance Tests Sweeper
+        runs-on: ubuntu-latest
+        timeout-minutes: 5
+        steps:
+            -   uses: actions/checkout@v4
+            -   uses: actions/setup-go@v5
+                with:
+                    go-version-file: 'go.mod'
+                    cache: true
+            -   run: go mod download
+            -   env:
+                    TF_ACC: "1"
+                    CDN77_TOKEN: ${{ secrets.CDN77_TOKEN }}
+                run: go test ./internal/provider -v --sweep all
