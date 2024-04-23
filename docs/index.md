@@ -29,5 +29,5 @@ provider "cdn77" {
 ### Optional
 
 - `endpoint` (String) API endpoint; defaults to https://api.cdn77.com
-- `timeout` (Number) Timeout for all API calls (in seconds). Negative values disable the timeout. Default is 10 seconds.
+- `timeout` (Number) Timeout for all API calls (in seconds). Negative values disable the timeout. Default is 30 seconds.
 - `token` (String, Sensitive) Authentication token from https://client.cdn77.com/account/api

@@ -28,7 +28,7 @@ type CdnSummaryModel struct {
 	Mp4PseudoStreamingEnabled types.Bool   `tfsdk:"mp4_pseudo_streaming_enabled"`
 }
 
-var _ datasource.DataSourceWithConfigure = &OriginDataSource{}
+var _ datasource.DataSourceWithConfigure = &CdnsDataSource{}
 
 func NewCdnsDataSource() datasource.DataSource {
 	return &CdnsDataSource{}

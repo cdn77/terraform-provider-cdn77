@@ -15,7 +15,7 @@ type SslsModel struct {
 	Ssls []SslModel `tfsdk:"ssls"`
 }
 
-var _ datasource.DataSourceWithConfigure = &OriginDataSource{}
+var _ datasource.DataSourceWithConfigure = &SslsDataSource{}
 
 func NewSslsDataSource() datasource.DataSource {
 	return &SslsDataSource{}

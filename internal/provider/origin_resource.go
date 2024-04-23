@@ -56,6 +56,11 @@ func (r *OriginResource) Create(ctx context.Context, req resource.CreateRequest,
 		if !r.createAws(ctx, &resp.Diagnostics, errMessage, &data) {
 			return
 		}
+	case OriginTypeObjectStorage:
+		if !r.createObjectStorage(ctx, &resp.Diagnostics, errMessage, &data) {
+			return
+		}
+
 	case OriginTypeUrl:
 		if !r.createUrl(ctx, &resp.Diagnostics, errMessage, &data) {
 			return
@@ -73,6 +78,7 @@ func (r *OriginResource) Read(ctx context.Context, req resource.ReadRequest, res
 	NewOriginResourceReader(ctx, r.client).Read(&req.State, &resp.Diagnostics, &resp.State)
 }
 
+//nolint:cyclop
 func (r *OriginResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var data OriginModel
 	if resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...); resp.Diagnostics.HasError() {
@@ -86,6 +92,15 @@ func (r *OriginResource) Update(ctx context.Context, req resource.UpdateRequest,
 		if !r.updateAws(ctx, &resp.Diagnostics, errMessage, &data) {
 			return
 		}
+	case OriginTypeObjectStorage:
+		var stateData OriginModel
+		if resp.Diagnostics.Append(req.State.Get(ctx, &stateData)...); resp.Diagnostics.HasError() {
+			return
+		}
+
+		if !r.updateObjectStorage(ctx, &resp.Diagnostics, errMessage, &data, &stateData) {
+			return
+		}
 	case OriginTypeUrl:
 		if !r.updateUrl(ctx, &resp.Diagnostics, errMessage, &data) {
 			return
@@ -94,6 +109,10 @@ func (r *OriginResource) Update(ctx context.Context, req resource.UpdateRequest,
 		addUnknownOriginTypeError(&resp.Diagnostics, data)
 
 		return
+	}
+
+	if data.Port.IsUnknown() {
+		data.Port = types.Int64Null()
 	}
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
@@ -105,7 +124,8 @@ func (r *OriginResource) Delete(ctx context.Context, req resource.DeleteRequest,
 		return
 	}
 
-	if data.Id.ValueString() == "" {
+	id := data.Id.ValueString()
+	if id == "" {
 		resp.Diagnostics.AddError("Can't delete Origin without ID", missingOriginIdDetailMessage)
 
 		return
@@ -115,45 +135,11 @@ func (r *OriginResource) Delete(ctx context.Context, req resource.DeleteRequest,
 
 	switch data.Type.ValueString() {
 	case OriginTypeAws:
-		response, err := r.client.OriginDeleteAwsWithResponse(ctx, data.Id.ValueString())
-		if err != nil {
-			resp.Diagnostics.AddError(errMessage, err.Error())
-
-			return
-		}
-
-		if maybeRemoveMissingResource(ctx, response.StatusCode(), data.Id.ValueString(), &resp.State) {
-			return
-		}
-
-		util.CheckResponse(
-			&resp.Diagnostics,
-			errMessage,
-			response,
-			response.JSON404,
-			response.JSON422,
-			response.JSONDefault,
-		)
+		r.deleteAws(ctx, &resp.Diagnostics, &resp.State, errMessage, id)
+	case OriginTypeObjectStorage:
+		r.deleteObjectStorage(ctx, &resp.Diagnostics, &resp.State, errMessage, id)
 	case OriginTypeUrl:
-		response, err := r.client.OriginDeleteUrlWithResponse(ctx, data.Id.ValueString())
-		if err != nil {
-			resp.Diagnostics.AddError(errMessage, err.Error())
-
-			return
-		}
-
-		if maybeRemoveMissingResource(ctx, response.StatusCode(), data.Id.ValueString(), &resp.State) {
-			return
-		}
-
-		util.CheckResponse(
-			&resp.Diagnostics,
-			errMessage,
-			response,
-			response.JSON404,
-			response.JSON422,
-			response.JSONDefault,
-		)
+		r.deleteUrl(ctx, &resp.Diagnostics, &resp.State, errMessage, id)
 	default:
 		addUnknownOriginTypeError(&resp.Diagnostics, data)
 	}
@@ -189,6 +175,44 @@ func (r *OriginResource) createAws(
 	}
 
 	data.Id = types.StringValue(response.JSON201.Id)
+	data.AccessKeyId = types.StringNull()
+	data.AccessKeySecret = types.StringNull()
+	data.Port = util.NullableIntToInt64Value(response.JSON201.Port)
+
+	return true
+}
+
+func (r *OriginResource) createObjectStorage(
+	ctx context.Context,
+	diags *diag.Diagnostics,
+	errMessage string,
+	data *OriginModel,
+) bool {
+	request := cdn77.OriginAddObjectStorageJSONRequestBody{
+		Acl:        cdn77.AclType(data.Acl.ValueString()),
+		BucketName: data.BucketName.ValueString(),
+		ClusterId:  data.ClusterId.ValueString(),
+		Label:      data.Label.ValueString(),
+		Note:       util.StringValueToNullable(data.Note),
+	}
+
+	response, err := r.client.OriginAddObjectStorageWithResponse(ctx, request)
+	if err != nil {
+		diags.AddError(errMessage, err.Error())
+
+		return false
+	}
+
+	if !util.CheckResponse(diags, errMessage, response, response.JSON422, response.JSONDefault) {
+		return false
+	}
+
+	data.Id = types.StringValue(response.JSON201.Id)
+	data.AccessKeyId = types.StringPointerValue(response.JSON201.AccessKeyId)
+	data.AccessKeySecret = types.StringPointerValue(response.JSON201.AccessSecret)
+	data.Scheme = types.StringValue(string(response.JSON201.Scheme))
+	data.Host = types.StringValue(response.JSON201.Host)
+	data.Port = util.NullableIntToInt64Value(response.JSON201.Port)
 
 	return true
 }
@@ -220,6 +244,9 @@ func (r *OriginResource) createUrl(
 	}
 
 	data.Id = types.StringValue(response.JSON201.Id)
+	data.AccessKeyId = types.StringNull()
+	data.AccessKeySecret = types.StringNull()
+	data.Port = util.NullableIntToInt64Value(response.JSON201.Port)
 
 	return true
 }
@@ -230,6 +257,9 @@ func (r *OriginResource) updateAws(
 	errMessage string,
 	data *OriginModel,
 ) bool {
+	data.AccessKeyId = types.StringNull()
+	data.AccessKeySecret = types.StringNull()
+
 	request := cdn77.OriginEditAwsJSONRequestBody{
 		AwsAccessKeyId:     util.StringValueToNullable(data.AwsAccessKeyId),
 		AwsAccessKeySecret: util.StringValueToNullable(data.AwsAccessKeySecret),
@@ -252,12 +282,41 @@ func (r *OriginResource) updateAws(
 	return util.CheckResponse(diags, errMessage, response, response.JSON404, response.JSON422, response.JSONDefault)
 }
 
+func (r *OriginResource) updateObjectStorage(
+	ctx context.Context,
+	diags *diag.Diagnostics,
+	errMessage string,
+	data *OriginModel,
+	stateData *OriginModel,
+) bool {
+	data.Scheme = stateData.Scheme
+	data.Host = stateData.Host
+	data.Port = stateData.Port
+
+	request := cdn77.OriginEditObjectStorageJSONRequestBody{
+		Label: data.Label.ValueStringPointer(),
+		Note:  util.StringValueToNullable(data.Note),
+	}
+
+	response, err := r.client.OriginEditObjectStorageWithResponse(ctx, data.Id.ValueString(), request)
+	if err != nil {
+		diags.AddError(errMessage, err.Error())
+
+		return false
+	}
+
+	return util.CheckResponse(diags, errMessage, response, response.JSON404, response.JSON422, response.JSONDefault)
+}
+
 func (r *OriginResource) updateUrl(
 	ctx context.Context,
 	diags *diag.Diagnostics,
 	errMessage string,
 	data *OriginModel,
 ) bool {
+	data.AccessKeyId = types.StringNull()
+	data.AccessKeySecret = types.StringNull()
+
 	request := cdn77.OriginEditUrlJSONRequestBody{
 		BaseDir: util.StringValueToNullable(data.BaseDir),
 		Host:    data.Host.ValueStringPointer(),
@@ -275,6 +334,69 @@ func (r *OriginResource) updateUrl(
 	}
 
 	return util.CheckResponse(diags, errMessage, response, response.JSON404, response.JSON422, response.JSONDefault)
+}
+
+func (r *OriginResource) deleteAws(
+	ctx context.Context,
+	diags *diag.Diagnostics,
+	state *tfsdk.State,
+	errMessage string,
+	id string,
+) {
+	response, err := r.client.OriginDeleteAwsWithResponse(ctx, id)
+	if err != nil {
+		diags.AddError(errMessage, err.Error())
+
+		return
+	}
+
+	if maybeRemoveMissingResource(ctx, response.StatusCode(), id, state) {
+		return
+	}
+
+	util.CheckResponse(diags, errMessage, response, response.JSON404, response.JSON422, response.JSONDefault)
+}
+
+func (r *OriginResource) deleteObjectStorage(
+	ctx context.Context,
+	diags *diag.Diagnostics,
+	state *tfsdk.State,
+	errMessage string,
+	id string,
+) {
+	response, err := r.client.OriginDeleteObjectStorageWithResponse(ctx, id)
+	if err != nil {
+		diags.AddError(errMessage, err.Error())
+
+		return
+	}
+
+	if maybeRemoveMissingResource(ctx, response.StatusCode(), id, state) {
+		return
+	}
+
+	util.CheckResponse(diags, errMessage, response, response.JSON404, response.JSON422, response.JSONDefault)
+}
+
+func (r *OriginResource) deleteUrl(
+	ctx context.Context,
+	diags *diag.Diagnostics,
+	state *tfsdk.State,
+	errMessage string,
+	id string,
+) {
+	response, err := r.client.OriginDeleteUrlWithResponse(ctx, id)
+	if err != nil {
+		diags.AddError(errMessage, err.Error())
+
+		return
+	}
+
+	if maybeRemoveMissingResource(ctx, response.StatusCode(), id, state) {
+		return
+	}
+
+	util.CheckResponse(diags, errMessage, response, response.JSON404, response.JSON422, response.JSONDefault)
 }
 
 func maybeRemoveMissingResource(ctx context.Context, statusCode int, id any, state *tfsdk.State) bool {

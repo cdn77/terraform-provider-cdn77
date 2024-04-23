@@ -3,7 +3,7 @@ module github.com/cdn77/terraform-provider-cdn77
 go 1.22
 
 require (
-	github.com/cdn77/cdn77-client-go v0.0.0-20240417141351-700a85f8affc
+	github.com/cdn77/cdn77-client-go v0.0.0-20240423130134-1eda9cd8a9db
 	github.com/hashicorp/terraform-plugin-docs v0.19.0
 	github.com/hashicorp/terraform-plugin-framework v1.7.0
 	github.com/hashicorp/terraform-plugin-framework-validators v0.12.0

@@ -16,7 +16,7 @@ type OriginsModel struct {
 	Origins []OriginModel `tfsdk:"origins"`
 }
 
-var _ datasource.DataSourceWithConfigure = &OriginDataSource{}
+var _ datasource.DataSourceWithConfigure = &OriginsDataSource{}
 
 func NewOriginsDataSource() datasource.DataSource {
 	return &OriginsDataSource{}
@@ -95,6 +95,17 @@ func (d *OriginsDataSource) Read(ctx context.Context, _ datasource.ReadRequest, 
 				Host:           types.StringValue(o.Host),
 				Port:           util.NullableIntToInt64Value(o.Port),
 				BaseDir:        util.NullableToStringValue(o.BaseDir),
+			}
+		case cdn77.ObjectStorageOriginDetail:
+			originModel = OriginModel{
+				Id:         types.StringValue(o.Id),
+				Type:       types.StringValue(OriginTypeObjectStorage),
+				Label:      types.StringValue(o.Label),
+				Note:       util.NullableToStringValue(o.Note),
+				BucketName: types.StringValue(o.BucketName),
+				Scheme:     types.StringValue(string(o.Scheme)),
+				Host:       types.StringValue(o.Host),
+				Port:       util.NullableIntToInt64Value(o.Port),
 			}
 		case cdn77.UrlOriginDetail:
 			originModel = OriginModel{

@@ -51,7 +51,7 @@ func (*Cdn77Provider) Schema(_ context.Context, _ provider.SchemaRequest, resp *
 			},
 			"timeout": schema.Int64Attribute{
 				MarkdownDescription: "Timeout for all API calls (in seconds). Negative values disable the timeout. " +
-					"Default is 10 seconds.",
+					"Default is 30 seconds.",
 				Optional: true,
 			},
 		},
@@ -167,7 +167,7 @@ func (*Cdn77Provider) getConfig(
 	}
 
 	if timeout == 0 {
-		timeout = 10
+		timeout = 30
 	}
 
 	timeout *= time.Second
@@ -187,6 +187,7 @@ func (*Cdn77Provider) DataSources(context.Context) []func() datasource.DataSourc
 	return []func() datasource.DataSource{
 		NewCdnDataSource,
 		NewCdnsDataSource,
+		NewObjectStoragesDataSource,
 		NewOriginDataSource,
 		NewOriginsDataSource,
 		NewSslDataSource,

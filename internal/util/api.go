@@ -25,7 +25,7 @@ func IntPointerToInt64Value[T ~int](v *T) types.Int64 {
 }
 
 func Int64ValueToNullable[T ~int](v types.Int64) nullable.Nullable[T] {
-	if v.IsNull() {
+	if v.IsNull() || v.IsUnknown() {
 		return nullable.NewNullNullable[T]()
 	}
 

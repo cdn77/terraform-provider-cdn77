@@ -15,6 +15,8 @@ func DeleteOrigin(client cdn77.ClientWithResponsesInterface, originType string, 
 	switch originType {
 	case provider.OriginTypeAws:
 		response, err = client.OriginDeleteAwsWithResponse(context.Background(), id)
+	case provider.OriginTypeObjectStorage:
+		response, err = client.OriginDeleteObjectStorageWithResponse(context.Background(), id)
 	case provider.OriginTypeUrl:
 		response, err = client.OriginDeleteUrlWithResponse(context.Background(), id)
 	default:

@@ -25,14 +25,19 @@ data "cdn77_origin" "example" {
 ### Required
 
 - `id` (String) Origin ID (UUID)
-- `type` (String) Type of the origin; one of [aws url]
+- `type` (String) Type of the origin; one of [aws object-storage url]
 
 ### Read-Only
 
+- `access_key_id` (String) Access key to your Object Storage bucket
+- `access_key_secret` (String, Sensitive) Access secret to your Object Storage bucket
+- `acl` (String) Object Storage access key ACL
 - `aws_access_key_id` (String) AWS access key ID
 - `aws_access_key_secret` (String, Sensitive) AWS access key secret
 - `aws_region` (String) AWS region
 - `base_dir` (String) Directory where the content is stored on the URL Origin
+- `bucket_name` (String) Name of your Object Storage bucket
+- `cluster_id` (String) ID of the Object Storage storage cluster
 - `host` (String) Origin host without scheme and port. Can be domain name or IP address
 - `label` (String) The label helps you to identify your Origin
 - `note` (String) Optional note for the Origin

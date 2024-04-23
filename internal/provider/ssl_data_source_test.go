@@ -34,7 +34,7 @@ func TestAccSslDataSource_NonExistingSsl(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config:      acctest.Config(sslDataSourceConfig, "id", sslId),
-				ExpectError: regexp.MustCompile(fmt.Sprintf(`SNI certificate with id "%s" couldn't be found`, sslId)),
+				ExpectError: regexp.MustCompile(fmt.Sprintf(`SNI certificate with id "%s" was not\s+found.`, sslId)),
 			},
 		},
 	})

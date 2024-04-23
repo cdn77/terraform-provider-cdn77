@@ -20,6 +20,11 @@ type OriginModel struct {
 	AwsAccessKeyId     types.String `tfsdk:"aws_access_key_id"`
 	AwsAccessKeySecret types.String `tfsdk:"aws_access_key_secret"`
 	AwsRegion          types.String `tfsdk:"aws_region"`
+	Acl                types.String `tfsdk:"acl"`
+	ClusterId          types.String `tfsdk:"cluster_id"`
+	AccessKeyId        types.String `tfsdk:"access_key_id"`
+	AccessKeySecret    types.String `tfsdk:"access_key_secret"`
+	BucketName         types.String `tfsdk:"bucket_name"`
 	Scheme             types.String `tfsdk:"scheme"`
 	Host               types.String `tfsdk:"host"`
 	Port               types.Int64  `tfsdk:"port"`
@@ -62,6 +67,8 @@ func (d *OriginDataReader) Read(provider StateProvider, diags *diag.Diagnostics,
 	switch data.Type.ValueString() {
 	case OriginTypeAws:
 		ok, statusCode = d.readAws(diags, errMessage, &data)
+	case OriginTypeObjectStorage:
+		ok, statusCode = d.readObjectStorage(diags, errMessage, &data)
 	case OriginTypeUrl:
 		ok, statusCode = d.readUrl(diags, errMessage, &data)
 	default:
@@ -105,6 +112,36 @@ func (d *OriginDataReader) readAws(diags *diag.Diagnostics, message string, data
 		Host:               types.StringValue(response.JSON200.Host),
 		Port:               util.NullableIntToInt64Value(response.JSON200.Port),
 		BaseDir:            util.NullableToStringValue(response.JSON200.BaseDir),
+	}
+
+	return true, response.StatusCode()
+}
+
+func (d *OriginDataReader) readObjectStorage(diags *diag.Diagnostics, message string, data *OriginModel) (bool, int) {
+	response, err := d.client.OriginDetailObjectStorageWithResponse(d.ctx, data.Id.ValueString())
+	if err != nil {
+		diags.AddError(message, err.Error())
+
+		return false, 0
+	}
+
+	if !util.CheckResponse(diags, message, response, response.JSON404, response.JSONDefault) {
+		return false, response.StatusCode()
+	}
+
+	*data = OriginModel{
+		Id:              data.Id,
+		Type:            types.StringValue(OriginTypeObjectStorage),
+		Label:           types.StringValue(response.JSON200.Label),
+		Note:            util.NullableToStringValue(response.JSON200.Note),
+		Acl:             data.Acl,
+		ClusterId:       data.ClusterId,
+		AccessKeyId:     data.AccessKeyId,
+		AccessKeySecret: data.AccessKeySecret,
+		BucketName:      types.StringValue(response.JSON200.BucketName),
+		Scheme:          types.StringValue(string(response.JSON200.Scheme)),
+		Host:            types.StringValue(response.JSON200.Host),
+		Port:            util.NullableIntToInt64Value(response.JSON200.Port),
 	}
 
 	return true, response.StatusCode()

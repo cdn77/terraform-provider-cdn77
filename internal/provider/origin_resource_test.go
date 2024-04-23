@@ -243,6 +243,358 @@ func TestAccOriginResource_Aws(t *testing.T) {
 	})
 }
 
+func TestAccOriginResource_ObjectStorage(t *testing.T) {
+	client := acctest.GetClient(t)
+	var originId string
+	var clusterId string
+
+	const objectStoragesDataSourceConfig = `
+		data "cdn77_object_storages" "all" {
+		}
+
+		locals {
+			eu_cluster_id = one([for os in data.cdn77_object_storages.all.clusters : os.id if os.label == "EU"])
+			us_cluster_id = one([for os in data.cdn77_object_storages.all.clusters : os.id if os.label == "US"])
+		}
+	`
+
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.GetProviderFactories(),
+		CheckDestroy:             checkOriginsDestroyed(client),
+		Steps: []resource.TestStep{
+			{
+				Config: objectStoragesDataSourceConfig + `resource "cdn77_origin" "os" {
+					type = "object-storage"
+					label = "some label"
+					acl = "private"
+					cluster_id = local.eu_cluster_id
+					bucket_name = "my-bucket"
+				}`,
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction("cdn77_origin.os", plancheck.ResourceActionCreate),
+					},
+				},
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrWith("cdn77_origin.os", "id", func(value string) error {
+						originId = value
+
+						return acctest.NotEqual(value, "")
+					}),
+					resource.TestCheckResourceAttr("cdn77_origin.os", "type", provider.OriginTypeObjectStorage),
+					resource.TestCheckResourceAttr("cdn77_origin.os", "label", "some label"),
+					resource.TestCheckResourceAttr("cdn77_origin.os", "acl", "private"),
+					resource.TestCheckResourceAttrWith("cdn77_origin.os", "cluster_id", func(value string) error {
+						clusterId = value
+
+						return acctest.NotEqual(value, "")
+					}),
+					resource.TestCheckResourceAttr("cdn77_origin.os", "bucket_name", "my-bucket"),
+					resource.TestCheckResourceAttrSet("cdn77_origin.os", "access_key_id"),
+					resource.TestCheckResourceAttrSet("cdn77_origin.os", "access_key_secret"),
+					resource.TestCheckResourceAttrSet("cdn77_origin.os", "scheme"),
+					resource.TestCheckResourceAttrSet("cdn77_origin.os", "host"),
+					resource.TestCheckResourceAttrSet("cdn77_origin.os", "port"),
+					resource.TestCheckNoResourceAttr("cdn77_origin.os", "note"),
+					resource.TestCheckNoResourceAttr("cdn77_origin.os", "aws_access_key_id"),
+					resource.TestCheckNoResourceAttr("cdn77_origin.os", "aws_access_key_secret"),
+					resource.TestCheckNoResourceAttr("cdn77_origin.os", "aws_region"),
+					resource.TestCheckNoResourceAttr("cdn77_origin.os", "base_dir"),
+					checkObjectStorageOrigin(client, &originId, func(o *cdn77.ObjectStorageOriginDetail) error {
+						return errors.Join(
+							acctest.EqualField("bucket_name", o.BucketName, "my-bucket"),
+							acctest.EqualField("label", o.Label, "some label"),
+							acctest.NullField("note", o.Note),
+							acctest.EqualField("type", o.Type, provider.OriginTypeObjectStorage),
+						)
+					}),
+				),
+			},
+			{
+				Config: objectStoragesDataSourceConfig + `resource "cdn77_origin" "os" {
+					type = "object-storage"
+					label = "another label"
+					note = "some note"
+					acl = "private"
+					cluster_id = local.eu_cluster_id
+					bucket_name = "my-bucket"
+				}`,
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction("cdn77_origin.os", plancheck.ResourceActionUpdate),
+					},
+				},
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrWith("cdn77_origin.os", "id", func(value string) error {
+						return acctest.Equal(value, originId)
+					}),
+					resource.TestCheckResourceAttr("cdn77_origin.os", "type", provider.OriginTypeObjectStorage),
+					resource.TestCheckResourceAttr("cdn77_origin.os", "label", "another label"),
+					resource.TestCheckResourceAttr("cdn77_origin.os", "note", "some note"),
+					resource.TestCheckResourceAttr("cdn77_origin.os", "acl", "private"),
+					resource.TestCheckResourceAttrWith("cdn77_origin.os", "cluster_id", func(value string) error {
+						return acctest.Equal(value, clusterId)
+					}),
+					resource.TestCheckResourceAttr("cdn77_origin.os", "bucket_name", "my-bucket"),
+					resource.TestCheckResourceAttrSet("cdn77_origin.os", "access_key_id"),
+					resource.TestCheckResourceAttrSet("cdn77_origin.os", "access_key_secret"),
+					resource.TestCheckResourceAttrSet("cdn77_origin.os", "scheme"),
+					resource.TestCheckResourceAttrSet("cdn77_origin.os", "host"),
+					resource.TestCheckResourceAttrSet("cdn77_origin.os", "port"),
+					resource.TestCheckNoResourceAttr("cdn77_origin.os", "aws_access_key_id"),
+					resource.TestCheckNoResourceAttr("cdn77_origin.os", "aws_access_key_secret"),
+					resource.TestCheckNoResourceAttr("cdn77_origin.os", "aws_region"),
+					resource.TestCheckNoResourceAttr("cdn77_origin.os", "base_dir"),
+					checkObjectStorageOrigin(client, &originId, func(o *cdn77.ObjectStorageOriginDetail) error {
+						return errors.Join(
+							acctest.EqualField("bucket_name", o.BucketName, "my-bucket"),
+							acctest.EqualField("label", o.Label, "another label"),
+							acctest.NullFieldEqual("note", o.Note, "some note"),
+							acctest.EqualField("type", o.Type, provider.OriginTypeObjectStorage),
+						)
+					}),
+				),
+			},
+			{
+				Config: objectStoragesDataSourceConfig + `resource "cdn77_origin" "os" {
+					type = "object-storage"
+					label = "another label"
+					acl = "private"
+					cluster_id = local.eu_cluster_id
+					bucket_name = "my-bucket"
+				}`,
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction("cdn77_origin.os", plancheck.ResourceActionUpdate),
+					},
+				},
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrWith("cdn77_origin.os", "id", func(value string) error {
+						return acctest.Equal(value, originId)
+					}),
+					resource.TestCheckResourceAttr("cdn77_origin.os", "type", provider.OriginTypeObjectStorage),
+					resource.TestCheckResourceAttr("cdn77_origin.os", "label", "another label"),
+					resource.TestCheckResourceAttr("cdn77_origin.os", "acl", "private"),
+					resource.TestCheckResourceAttrWith("cdn77_origin.os", "cluster_id", func(value string) error {
+						return acctest.Equal(value, clusterId)
+					}),
+					resource.TestCheckResourceAttr("cdn77_origin.os", "bucket_name", "my-bucket"),
+					resource.TestCheckResourceAttrSet("cdn77_origin.os", "access_key_id"),
+					resource.TestCheckResourceAttrSet("cdn77_origin.os", "access_key_secret"),
+					resource.TestCheckResourceAttrSet("cdn77_origin.os", "scheme"),
+					resource.TestCheckResourceAttrSet("cdn77_origin.os", "host"),
+					resource.TestCheckResourceAttrSet("cdn77_origin.os", "port"),
+					resource.TestCheckNoResourceAttr("cdn77_origin.os", "note"),
+					resource.TestCheckNoResourceAttr("cdn77_origin.os", "aws_access_key_id"),
+					resource.TestCheckNoResourceAttr("cdn77_origin.os", "aws_access_key_secret"),
+					resource.TestCheckNoResourceAttr("cdn77_origin.os", "aws_region"),
+					resource.TestCheckNoResourceAttr("cdn77_origin.os", "base_dir"),
+					checkObjectStorageOrigin(client, &originId, func(o *cdn77.ObjectStorageOriginDetail) error {
+						return errors.Join(
+							acctest.EqualField("bucket_name", o.BucketName, "my-bucket"),
+							acctest.EqualField("label", o.Label, "another label"),
+							acctest.NullField("note", o.Note),
+							acctest.EqualField("type", o.Type, provider.OriginTypeObjectStorage),
+						)
+					}),
+				),
+			},
+			{
+				Config: objectStoragesDataSourceConfig + `resource "cdn77_origin" "os" {
+					type = "object-storage"
+					label = "another label"
+					acl = "authenticated-read"
+					cluster_id = local.eu_cluster_id
+					bucket_name = "my-bucket"
+				}`,
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction("cdn77_origin.os", plancheck.ResourceActionDestroyBeforeCreate),
+					},
+				},
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrWith("cdn77_origin.os", "id", func(value string) error {
+						err := acctest.NotEqual(value, originId)
+						originId = value
+
+						return err
+					}),
+					resource.TestCheckResourceAttr("cdn77_origin.os", "type", provider.OriginTypeObjectStorage),
+					resource.TestCheckResourceAttr("cdn77_origin.os", "label", "another label"),
+					resource.TestCheckResourceAttr("cdn77_origin.os", "acl", "authenticated-read"),
+					resource.TestCheckResourceAttrWith("cdn77_origin.os", "cluster_id", func(value string) error {
+						return acctest.Equal(value, clusterId)
+					}),
+					resource.TestCheckResourceAttr("cdn77_origin.os", "bucket_name", "my-bucket"),
+					resource.TestCheckResourceAttrSet("cdn77_origin.os", "access_key_id"),
+					resource.TestCheckResourceAttrSet("cdn77_origin.os", "access_key_secret"),
+					resource.TestCheckResourceAttrSet("cdn77_origin.os", "scheme"),
+					resource.TestCheckResourceAttrSet("cdn77_origin.os", "host"),
+					resource.TestCheckResourceAttrSet("cdn77_origin.os", "port"),
+					resource.TestCheckNoResourceAttr("cdn77_origin.os", "note"),
+					resource.TestCheckNoResourceAttr("cdn77_origin.os", "aws_access_key_id"),
+					resource.TestCheckNoResourceAttr("cdn77_origin.os", "aws_access_key_secret"),
+					resource.TestCheckNoResourceAttr("cdn77_origin.os", "aws_region"),
+					resource.TestCheckNoResourceAttr("cdn77_origin.os", "base_dir"),
+					checkObjectStorageOrigin(client, &originId, func(o *cdn77.ObjectStorageOriginDetail) error {
+						return errors.Join(
+							acctest.EqualField("bucket_name", o.BucketName, "my-bucket"),
+							acctest.EqualField("label", o.Label, "another label"),
+							acctest.NullField("note", o.Note),
+							acctest.EqualField("type", o.Type, provider.OriginTypeObjectStorage),
+						)
+					}),
+				),
+			},
+			{
+				Config: objectStoragesDataSourceConfig + `resource "cdn77_origin" "os" {
+					type = "object-storage"
+					label = "another label"
+					acl = "authenticated-read"
+					cluster_id = local.us_cluster_id
+					bucket_name = "my-bucket"
+				}`,
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction("cdn77_origin.os", plancheck.ResourceActionDestroyBeforeCreate),
+					},
+				},
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrWith("cdn77_origin.os", "id", func(value string) error {
+						err := acctest.NotEqual(value, originId)
+						originId = value
+
+						return err
+					}),
+					resource.TestCheckResourceAttr("cdn77_origin.os", "type", provider.OriginTypeObjectStorage),
+					resource.TestCheckResourceAttr("cdn77_origin.os", "label", "another label"),
+					resource.TestCheckResourceAttr("cdn77_origin.os", "acl", "authenticated-read"),
+					resource.TestCheckResourceAttrWith("cdn77_origin.os", "cluster_id", func(value string) error {
+						err := acctest.NotEqual(value, clusterId)
+						clusterId = value
+
+						return err
+					}),
+					resource.TestCheckResourceAttr("cdn77_origin.os", "bucket_name", "my-bucket"),
+					resource.TestCheckResourceAttrSet("cdn77_origin.os", "access_key_id"),
+					resource.TestCheckResourceAttrSet("cdn77_origin.os", "access_key_secret"),
+					resource.TestCheckResourceAttrSet("cdn77_origin.os", "scheme"),
+					resource.TestCheckResourceAttrSet("cdn77_origin.os", "host"),
+					resource.TestCheckResourceAttrSet("cdn77_origin.os", "port"),
+					resource.TestCheckNoResourceAttr("cdn77_origin.os", "note"),
+					resource.TestCheckNoResourceAttr("cdn77_origin.os", "aws_access_key_id"),
+					resource.TestCheckNoResourceAttr("cdn77_origin.os", "aws_access_key_secret"),
+					resource.TestCheckNoResourceAttr("cdn77_origin.os", "aws_region"),
+					resource.TestCheckNoResourceAttr("cdn77_origin.os", "base_dir"),
+					checkObjectStorageOrigin(client, &originId, func(o *cdn77.ObjectStorageOriginDetail) error {
+						return errors.Join(
+							acctest.EqualField("bucket_name", o.BucketName, "my-bucket"),
+							acctest.EqualField("label", o.Label, "another label"),
+							acctest.NullField("note", o.Note),
+							acctest.EqualField("type", o.Type, provider.OriginTypeObjectStorage),
+						)
+					}),
+				),
+			},
+			{
+				Config: objectStoragesDataSourceConfig + `resource "cdn77_origin" "os" {
+					type = "object-storage"
+					label = "another label"
+					acl = "authenticated-read"
+					cluster_id = local.us_cluster_id
+					bucket_name = "lorem"
+				}`,
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction("cdn77_origin.os", plancheck.ResourceActionDestroyBeforeCreate),
+					},
+				},
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrWith("cdn77_origin.os", "id", func(value string) error {
+						err := acctest.NotEqual(value, originId)
+						originId = value
+
+						return err
+					}),
+					resource.TestCheckResourceAttr("cdn77_origin.os", "type", provider.OriginTypeObjectStorage),
+					resource.TestCheckResourceAttr("cdn77_origin.os", "label", "another label"),
+					resource.TestCheckResourceAttr("cdn77_origin.os", "acl", "authenticated-read"),
+					resource.TestCheckResourceAttrWith("cdn77_origin.os", "cluster_id", func(value string) error {
+						return acctest.Equal(value, clusterId)
+					}),
+					resource.TestCheckResourceAttr("cdn77_origin.os", "bucket_name", "lorem"),
+					resource.TestCheckResourceAttrSet("cdn77_origin.os", "access_key_id"),
+					resource.TestCheckResourceAttrSet("cdn77_origin.os", "access_key_secret"),
+					resource.TestCheckResourceAttrSet("cdn77_origin.os", "scheme"),
+					resource.TestCheckResourceAttrSet("cdn77_origin.os", "host"),
+					resource.TestCheckResourceAttrSet("cdn77_origin.os", "port"),
+					resource.TestCheckNoResourceAttr("cdn77_origin.os", "note"),
+					resource.TestCheckNoResourceAttr("cdn77_origin.os", "aws_access_key_id"),
+					resource.TestCheckNoResourceAttr("cdn77_origin.os", "aws_access_key_secret"),
+					resource.TestCheckNoResourceAttr("cdn77_origin.os", "aws_region"),
+					resource.TestCheckNoResourceAttr("cdn77_origin.os", "base_dir"),
+					checkObjectStorageOrigin(client, &originId, func(o *cdn77.ObjectStorageOriginDetail) error {
+						return errors.Join(
+							acctest.EqualField("bucket_name", o.BucketName, "lorem"),
+							acctest.EqualField("label", o.Label, "another label"),
+							acctest.NullField("note", o.Note),
+							acctest.EqualField("type", o.Type, provider.OriginTypeObjectStorage),
+						)
+					}),
+				),
+			},
+			{
+				Config: `resource "cdn77_origin" "os" {
+					type = "url"
+					label = "another label"
+					note = "another note"
+					scheme = "http"
+					host = "my-totally-random-custom-host.com"
+				}`,
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction("cdn77_origin.os", plancheck.ResourceActionDestroyBeforeCreate),
+					},
+				},
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrWith("cdn77_origin.os", "id", func(value string) error {
+						err := acctest.NotEqual(value, originId)
+						originId = value
+
+						return err
+					}),
+					resource.TestCheckResourceAttr("cdn77_origin.os", "type", provider.OriginTypeUrl),
+					resource.TestCheckResourceAttr("cdn77_origin.os", "label", "another label"),
+					resource.TestCheckResourceAttr("cdn77_origin.os", "note", "another note"),
+					resource.TestCheckResourceAttr("cdn77_origin.os", "scheme", "http"),
+					resource.TestCheckResourceAttr("cdn77_origin.os", "host", "my-totally-random-custom-host.com"),
+					resource.TestCheckNoResourceAttr("cdn77_origin.os", "aws_access_key_id"),
+					resource.TestCheckNoResourceAttr("cdn77_origin.os", "aws_access_key_secret"),
+					resource.TestCheckNoResourceAttr("cdn77_origin.os", "aws_region"),
+					resource.TestCheckNoResourceAttr("cdn77_origin.os", "acl"),
+					resource.TestCheckNoResourceAttr("cdn77_origin.os", "cluster_id"),
+					resource.TestCheckNoResourceAttr("cdn77_origin.os", "bucket_name"),
+					resource.TestCheckNoResourceAttr("cdn77_origin.os", "access_key_id"),
+					resource.TestCheckNoResourceAttr("cdn77_origin.os", "access_key_secret"),
+					resource.TestCheckNoResourceAttr("cdn77_origin.os", "port"),
+					resource.TestCheckNoResourceAttr("cdn77_origin.os", "base_dir"),
+					checkUrlOrigin(client, &originId, func(o *cdn77.UrlOriginDetail) error {
+						return errors.Join(
+							acctest.NullField("base_dir", o.BaseDir),
+							acctest.EqualField("host", o.Host, "my-totally-random-custom-host.com"),
+							acctest.EqualField("label", o.Label, "another label"),
+							acctest.NullFieldEqual("note", o.Note, "another note"),
+							acctest.NullField("port", o.Port),
+							acctest.EqualField("scheme", o.Scheme, "http"),
+							acctest.EqualField("type", o.Type, provider.OriginTypeUrl),
+						)
+					}),
+				),
+			},
+		},
+	})
+}
+
 func TestAccOriginResource_Url(t *testing.T) {
 	client := acctest.GetClient(t)
 	var originId string
@@ -483,6 +835,23 @@ func checkAwsOrigin(
 	}
 }
 
+func checkObjectStorageOrigin(
+	client cdn77.ClientWithResponsesInterface,
+	originId *string,
+	fn func(o *cdn77.ObjectStorageOriginDetail) error,
+) func(*terraform.State) error {
+	return func(_ *terraform.State) error {
+		response, err := client.OriginDetailObjectStorageWithResponse(context.Background(), *originId)
+		message := fmt.Sprintf("failed to get Origin[id=%s]: %%s", *originId)
+
+		if err = acctest.CheckResponse(message, response, err); err != nil {
+			return err
+		}
+
+		return fn(response.JSON200)
+	}
+}
+
 func checkUrlOrigin(
 	client cdn77.ClientWithResponsesInterface,
 	originId *string,
@@ -507,9 +876,20 @@ func checkOriginsDestroyed(client cdn77.ClientWithResponsesInterface) func(*terr
 				continue
 			}
 
+			originId := rs.Primary.Attributes["id"]
+
 			switch rs.Primary.Attributes["type"] {
 			case provider.OriginTypeAws:
-				response, err := client.OriginDetailAwsWithResponse(context.Background(), rs.Primary.Attributes["id"])
+				response, err := client.OriginDetailAwsWithResponse(context.Background(), originId)
+				if err != nil {
+					return fmt.Errorf("failed to fetch Origin: %w", err)
+				}
+
+				if response.JSON404 == nil {
+					return errors.New("expected origin to be deleted")
+				}
+			case provider.OriginTypeObjectStorage:
+				response, err := client.OriginDetailObjectStorageWithResponse(context.Background(), originId)
 				if err != nil {
 					return fmt.Errorf("failed to fetch Origin: %w", err)
 				}
@@ -518,7 +898,7 @@ func checkOriginsDestroyed(client cdn77.ClientWithResponsesInterface) func(*terr
 					return errors.New("expected origin to be deleted")
 				}
 			case provider.OriginTypeUrl:
-				response, err := client.OriginDetailUrlWithResponse(context.Background(), rs.Primary.Attributes["id"])
+				response, err := client.OriginDetailUrlWithResponse(context.Background(), originId)
 				if err != nil {
 					return fmt.Errorf("failed to fetch Origin: %w", err)
 				}
