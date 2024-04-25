@@ -38,7 +38,7 @@ resource "cdn77_cdn" "example" {
 - `https_redirect` (Attributes) If enabled, all requests via HTTP are redirected to HTTPS. Verify HTTPS availability of CNAMEs before activating, if applicable. (see [below for nested schema](#nestedatt--https_redirect))
 - `ip_protection` (Attributes) IP protection enables you to control which networks can access your content directly (see [below for nested schema](#nestedatt--ip_protection))
 - `mp4_pseudo_streaming_enabled` (Boolean) Turn this option on if using a flash-based video player with MP4 files. Pseudo-streaming is used mainly in flash players. HTML5 players use range-requests. When enabled the "query_string" option must be set to ignore all parameters.
-- `note` (String) Optional note for the Origin
+- `note` (String) Optional note
 - `origin_headers` (Map of String) Custom HTTP headers included in requests sent to the origin server
 - `query_string` (Attributes) Enabling this feature will ignore the query string, allowing URLs with query strings to cache properly. This is particularly useful if you tag your URLs with tracking/marketing parameters, for example. (see [below for nested schema](#nestedatt--query_string))
 - `quic_enabled` (Boolean) gQUIC is a protocol created by Google. It works with chromium-based browsers and was originally designed for the transmission of HTTP/2 frames. It incentivised a new standardised transport protocol called QUIC.

@@ -49,7 +49,7 @@ func CreateCdnResourceSchema() schema.Schema {
 				Required:    true,
 			},
 			"note": schema.StringAttribute{
-				Description: "Optional note for the Origin",
+				Description: "Optional note",
 				Optional:    true,
 			},
 			"origin_id": schema.StringAttribute{

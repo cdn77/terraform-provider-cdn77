@@ -37,7 +37,7 @@ data "cdn77_cdn" "example" {
 - `ip_protection` (Attributes) IP protection enables you to control which networks can access your content directly (see [below for nested schema](#nestedatt--ip_protection))
 - `label` (String) The label helps you to identify your CDN
 - `mp4_pseudo_streaming_enabled` (Boolean) Turn this option on if using a flash-based video player with MP4 files. Pseudo-streaming is used mainly in flash players. HTML5 players use range-requests. When enabled the "query_string" option must be set to ignore all parameters.
-- `note` (String) Optional note for the Origin
+- `note` (String) Optional note
 - `origin_headers` (Map of String) Custom HTTP headers included in requests sent to the origin server
 - `origin_id` (String) ID (UUID) of attached Origin (content source for CDN)
 - `origin_protection_enabled` (Boolean) Enabled origin protection can ease the load on your server or even hide it from direct incoming traffic with our proxy servers.

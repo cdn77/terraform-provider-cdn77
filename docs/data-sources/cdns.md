@@ -34,6 +34,6 @@ Read-Only:
 - `id` (Number) ID of the CDN. This is also used as the CDN URL
 - `label` (String) The label helps you to identify your CDN
 - `mp4_pseudo_streaming_enabled` (Boolean) Turn this option on if using a flash-based video player with MP4 files. Pseudo-streaming is used mainly in flash players. HTML5 players use range-requests. When enabled the "query_string" option must be set to ignore all parameters.
-- `note` (String) Optional note for the Origin
+- `note` (String) Optional note
 - `origin_id` (String) ID (UUID) of attached Origin (content source for CDN)
 - `url` (String) URL of the CDN. Automatically generated when the CDN is created. The number is the same as the CDN ID.
