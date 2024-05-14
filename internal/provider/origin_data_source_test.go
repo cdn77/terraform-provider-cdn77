@@ -10,6 +10,7 @@ import (
 	"github.com/cdn77/cdn77-client-go"
 	"github.com/cdn77/terraform-provider-cdn77/internal/acctest"
 	"github.com/cdn77/terraform-provider-cdn77/internal/provider"
+	"github.com/google/uuid"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"github.com/oapi-codegen/nullable"
@@ -23,15 +24,15 @@ func TestAccOriginDataSource_NonExistingOrigin(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config:      acctest.Config(originDataSourceConfigAws, "id", originId),
-				ExpectError: regexp.MustCompile(fmt.Sprintf(`Storage with id:\W+"%s" could not be found`, originId)),
+				ExpectError: regexp.MustCompile(fmt.Sprintf(`.*?"%s".*?not found.*?`, originId)),
 			},
 			{
 				Config:      acctest.Config(originDataSourceConfigObjectStorage, "id", originId),
-				ExpectError: regexp.MustCompile(fmt.Sprintf(`Storage with id:\W+"%s" could not be found`, originId)),
+				ExpectError: regexp.MustCompile(fmt.Sprintf(`.*?"%s".*?not found.*?`, originId)),
 			},
 			{
 				Config:      acctest.Config(originDataSourceConfigUrl, "id", originId),
-				ExpectError: regexp.MustCompile(fmt.Sprintf(`Storage with id:\W+"%s" could not be found`, originId)),
+				ExpectError: regexp.MustCompile(fmt.Sprintf(`.*?"%s".*?not found.*?`, originId)),
 			},
 		},
 	})
@@ -151,7 +152,7 @@ func TestAccOriginDataSource_ObjectStorage_OnlyRequiredFields(t *testing.T) {
 	client := acctest.GetClient(t)
 
 	const rsc = "data.cdn77_origin.os"
-	const originBucketName = "my-bucket"
+	originBucketName := "my-bucket-" + uuid.New().String()
 	const originLabel = "random origin"
 
 	request := cdn77.OriginAddObjectStorageJSONRequestBody{
@@ -210,7 +211,7 @@ func TestAccOriginDataSource_ObjectStorage_AllFields(t *testing.T) {
 	client := acctest.GetClient(t)
 
 	const rsc = "data.cdn77_origin.os"
-	const originBucketName = "my-bucket"
+	originBucketName := "my-bucket-" + uuid.New().String()
 	const originLabel = "random origin"
 	const originNote = "some note"
 

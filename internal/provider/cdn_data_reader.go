@@ -26,7 +26,6 @@ type CdnModel struct {
 	Headers                   *CdnModelHeaders           `tfsdk:"headers"`
 	HttpsRedirect             *CdnModelHttpsRedirect     `tfsdk:"https_redirect"`
 	Mp4PseudoStreamingEnabled types.Bool                 `tfsdk:"mp4_pseudo_streaming_enabled"`
-	QuicEnabled               types.Bool                 `tfsdk:"quic_enabled"`
 	WafEnabled                types.Bool                 `tfsdk:"waf_enabled"`
 	Ssl                       *CdnModelSsl               `tfsdk:"ssl"`
 	Stream                    *CdnModelStream            `tfsdk:"stream"`
@@ -245,7 +244,6 @@ func (d *CdnDataReader) Read(provider StateProvider, diags *diag.Diagnostics, st
 			Enabled: types.BoolValue(cdn.HttpsRedirect.Enabled),
 		},
 		Mp4PseudoStreamingEnabled: types.BoolPointerValue(cdn.Mp4PseudoStreaming.Enabled),
-		QuicEnabled:               types.BoolValue(cdn.Quic.Enabled),
 		WafEnabled:                types.BoolValue(cdn.Waf.Enabled),
 		Ssl: &CdnModelSsl{
 			Type:  types.StringValue(string(cdn.Ssl.Type)),

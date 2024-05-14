@@ -10,6 +10,7 @@ import (
 	"github.com/cdn77/cdn77-client-go"
 	"github.com/cdn77/terraform-provider-cdn77/internal/acctest"
 	"github.com/cdn77/terraform-provider-cdn77/internal/provider"
+	"github.com/google/uuid"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"github.com/oapi-codegen/nullable"
@@ -64,7 +65,7 @@ func TestAccOriginsDataSource_All(t *testing.T) {
 		acctest.MustDeleteOrigin(t, client, provider.OriginTypeAws, origin2Id)
 	})
 
-	const origin3BucketName = "my-bucket"
+	origin3BucketName := "my-bucket-" + uuid.New().String()
 	const origin3Label = "yet another origin"
 	const origin3Note = "just a note"
 

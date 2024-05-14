@@ -84,7 +84,6 @@ func TestAccCdnResource(t *testing.T) {
 					attrEq("headers.content_disposition_type", string(cdn77.ContentDispositionTypeNone)),
 					attrEq("https_redirect.enabled", "false"),
 					attrEq("mp4_pseudo_streaming_enabled", "false"),
-					attrEq("quic_enabled", "false"),
 					attrEq("waf_enabled", "false"),
 					attrEq("ssl.type", string(cdn77.InstantSsl)),
 					attrEq("hotlink_protection.type", string(cdn77.Disabled)),
@@ -179,7 +178,6 @@ func TestAccCdnResource(t *testing.T) {
 					attrEq("https_redirect.enabled", "true"),
 					attrEq("https_redirect.code", fmt.Sprintf("%d", cdn77.N301)),
 					attrEq("mp4_pseudo_streaming_enabled", "false"),
-					attrEq("quic_enabled", "false"),
 					attrEq("waf_enabled", "false"),
 					attrEq("ssl.type", string(cdn77.InstantSsl)),
 					attrEq("hotlink_protection.type", string(cdn77.Disabled)),
@@ -271,7 +269,6 @@ func TestAccCdnResource(t *testing.T) {
 							code = 301
 						}
 						mp4_pseudo_streaming_enabled = true
-						quic_enabled = true
 						waf_enabled = true
 						ssl = {
 							type = "SNI"
@@ -337,7 +334,6 @@ func TestAccCdnResource(t *testing.T) {
 					attrEq("https_redirect.enabled", "true"),
 					attrEq("https_redirect.code", fmt.Sprintf("%d", cdn77.N301)),
 					attrEq("mp4_pseudo_streaming_enabled", "true"),
-					attrEq("quic_enabled", "true"),
 					attrEq("waf_enabled", "true"),
 					attrEq("ssl.type", string(cdn77.SNI)),
 					attrEq("ssl.ssl_id", sslId),
@@ -405,8 +401,7 @@ func TestAccCdnResource(t *testing.T) {
 							acctest.EqualField("https_redirect.enabled", c.HttpsRedirect.Enabled, true),
 							acctest.EqualField("https_redirect.code", *c.HttpsRedirect.Code, cdn77.N301),
 							acctest.EqualField("mp4_pseudo_streaming_enabled", *c.Mp4PseudoStreaming.Enabled, true),
-							acctest.EqualField("quic_enabled", c.Quic.Enabled, true),
-							acctest.EqualField("waf_enabled", c.Quic.Enabled, true),
+							acctest.EqualField("waf_enabled", c.Waf.Enabled, true),
 							acctest.EqualField("ssl.type", c.Ssl.Type, cdn77.SNI),
 							acctest.EqualField("ssl.ssl_id", *c.Ssl.SslId, sslId),
 							acctest.EqualField("hotlink_protection.type", c.HotlinkProtection.Type, cdn77.Blocklist),
@@ -492,7 +487,6 @@ func TestAccCdnResource(t *testing.T) {
 					attrEq("headers.content_disposition_type", string(cdn77.ContentDispositionTypeNone)),
 					attrEq("https_redirect.enabled", "false"),
 					attrEq("mp4_pseudo_streaming_enabled", "false"),
-					attrEq("quic_enabled", "false"),
 					attrEq("waf_enabled", "false"),
 					attrEq("ssl.type", string(cdn77.InstantSsl)),
 					attrEq("hotlink_protection.type", string(cdn77.Disabled)),
@@ -585,7 +579,6 @@ func checkCdnDefaults(
 			acctest.EqualField("https_redirect.code", c.HttpsRedirect.Code, nil),
 
 			acctest.EqualField("mp4_pseudo_streaming_enabled", *c.Mp4PseudoStreaming.Enabled, false),
-			acctest.EqualField("quic_enabled", c.Quic.Enabled, false),
 			acctest.EqualField("waf_enabled", c.Waf.Enabled, false),
 			acctest.EqualField("ssl.type", c.Ssl.Type, cdn77.InstantSsl),
 			acctest.EqualField("ssl.ssl_id", c.Ssl.SslId, nil),

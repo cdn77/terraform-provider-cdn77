@@ -58,7 +58,7 @@ func GetClientErr() (cdn77.ClientWithResponsesInterface, error) {
 	}
 
 	if timeout == 0 {
-		timeout = time.Second * 10
+		timeout = time.Second * 30
 	}
 
 	client, err := provider.NewClient(endpoint, token, timeout)

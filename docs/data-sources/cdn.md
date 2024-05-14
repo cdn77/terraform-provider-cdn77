@@ -42,7 +42,6 @@ data "cdn77_cdn" "example" {
 - `origin_id` (String) ID (UUID) of attached Origin (content source for CDN)
 - `origin_protection_enabled` (Boolean) Enabled origin protection can ease the load on your server or even hide it from direct incoming traffic with our proxy servers.
 - `query_string` (Attributes) Enabling this feature will ignore the query string, allowing URLs with query strings to cache properly. This is particularly useful if you tag your URLs with tracking/marketing parameters, for example. (see [below for nested schema](#nestedatt--query_string))
-- `quic_enabled` (Boolean) gQUIC is a protocol created by Google. It works with chromium-based browsers and was originally designed for the transmission of HTTP/2 frames. It incentivised a new standardised transport protocol called QUIC.
 - `rate_limit_enabled` (Boolean) When enabled, this feature limits the data transfer rate by setting "limit_rate" based on the "rs" URL parameter and "limit_rate_after" by the value from the "ri" URL parameter.
 - `secure_token` (Attributes) This feature allows you to serve your content using signed URLs. You can enable your users to download secured content from the CDN with a valid hash. Note: When you check this option, make sure to generate secured links to access your content. (see [below for nested schema](#nestedatt--secure_token))
 - `ssl` (Attributes) (see [below for nested schema](#nestedatt--ssl))

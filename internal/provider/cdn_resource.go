@@ -203,7 +203,6 @@ func (*CdnResource) createDefaultEditRequest() cdn77.CdnEditJSONRequestBody {
 		Note:               nullable.NewNullNullable[string](),
 		OriginHeaders:      &cdn77.OriginHeaders{Custom: nullable.NewNullNullable[map[string]string]()},
 		QueryString:        &cdn77.QueryString{IgnoreType: cdn77.QueryStringIgnoreTypeNone},
-		Quic:               &cdn77.Quic{},
 		RateLimit:          &cdn77.RateLimit{},
 		SecureToken:        &cdn77.SecureToken{Type: cdn77.SecureTokenTypeNone},
 		Ssl:                &cdn77.CdnSsl{Type: cdn77.InstantSsl},
@@ -311,7 +310,6 @@ func (r *CdnResource) createEditRequest( //nolint:cyclop
 
 	request.QueryString.IgnoreType = cdn77.QueryStringIgnoreType(data.QueryString.IgnoreType.ValueString())
 
-	request.Quic.Enabled = data.QuicEnabled.ValueBool()
 	request.RateLimit.Enabled = data.RateLimitEnabled.ValueBool()
 
 	if !data.SecureToken.Token.IsNull() {

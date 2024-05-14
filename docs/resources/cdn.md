@@ -41,7 +41,6 @@ resource "cdn77_cdn" "example" {
 - `note` (String) Optional note
 - `origin_headers` (Map of String) Custom HTTP headers included in requests sent to the origin server
 - `query_string` (Attributes) Enabling this feature will ignore the query string, allowing URLs with query strings to cache properly. This is particularly useful if you tag your URLs with tracking/marketing parameters, for example. (see [below for nested schema](#nestedatt--query_string))
-- `quic_enabled` (Boolean) gQUIC is a protocol created by Google. It works with chromium-based browsers and was originally designed for the transmission of HTTP/2 frames. It incentivised a new standardised transport protocol called QUIC.
 - `rate_limit_enabled` (Boolean) When enabled, this feature limits the data transfer rate by setting "limit_rate" based on the "rs" URL parameter and "limit_rate_after" by the value from the "ri" URL parameter.
 - `secure_token` (Attributes) This feature allows you to serve your content using signed URLs. You can enable your users to download secured content from the CDN with a valid hash. Note: When you check this option, make sure to generate secured links to access your content. (see [below for nested schema](#nestedatt--secure_token))
 - `ssl` (Attributes) (see [below for nested schema](#nestedatt--ssl))

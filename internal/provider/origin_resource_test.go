@@ -9,6 +9,7 @@ import (
 	"github.com/cdn77/cdn77-client-go"
 	"github.com/cdn77/terraform-provider-cdn77/internal/acctest"
 	"github.com/cdn77/terraform-provider-cdn77/internal/provider"
+	"github.com/google/uuid"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
@@ -245,6 +246,8 @@ func TestAccOriginResource_Aws(t *testing.T) {
 
 func TestAccOriginResource_ObjectStorage(t *testing.T) {
 	client := acctest.GetClient(t)
+	bucketName := "my-bucket-" + uuid.New().String()
+	anotherBucketName := "my-bucket-" + uuid.New().String()
 	var originId string
 	var clusterId string
 
@@ -263,13 +266,13 @@ func TestAccOriginResource_ObjectStorage(t *testing.T) {
 		CheckDestroy:             checkOriginsDestroyed(client),
 		Steps: []resource.TestStep{
 			{
-				Config: objectStoragesDataSourceConfig + `resource "cdn77_origin" "os" {
+				Config: acctest.Config(objectStoragesDataSourceConfig+`resource "cdn77_origin" "os" {
 					type = "object-storage"
 					label = "some label"
 					acl = "private"
 					cluster_id = local.eu_cluster_id
-					bucket_name = "my-bucket"
-				}`,
+					bucket_name = "{bucketName}"
+				}`, "bucketName", bucketName),
 				ConfigPlanChecks: resource.ConfigPlanChecks{
 					PreApply: []plancheck.PlanCheck{
 						plancheck.ExpectResourceAction("cdn77_origin.os", plancheck.ResourceActionCreate),
@@ -289,7 +292,7 @@ func TestAccOriginResource_ObjectStorage(t *testing.T) {
 
 						return acctest.NotEqual(value, "")
 					}),
-					resource.TestCheckResourceAttr("cdn77_origin.os", "bucket_name", "my-bucket"),
+					resource.TestCheckResourceAttr("cdn77_origin.os", "bucket_name", bucketName),
 					resource.TestCheckResourceAttrSet("cdn77_origin.os", "access_key_id"),
 					resource.TestCheckResourceAttrSet("cdn77_origin.os", "access_key_secret"),
 					resource.TestCheckResourceAttrSet("cdn77_origin.os", "scheme"),
@@ -302,7 +305,7 @@ func TestAccOriginResource_ObjectStorage(t *testing.T) {
 					resource.TestCheckNoResourceAttr("cdn77_origin.os", "base_dir"),
 					checkObjectStorageOrigin(client, &originId, func(o *cdn77.ObjectStorageOriginDetail) error {
 						return errors.Join(
-							acctest.EqualField("bucket_name", o.BucketName, "my-bucket"),
+							acctest.EqualField("bucket_name", o.BucketName, bucketName),
 							acctest.EqualField("label", o.Label, "some label"),
 							acctest.NullField("note", o.Note),
 							acctest.EqualField("type", o.Type, provider.OriginTypeObjectStorage),
@@ -311,14 +314,14 @@ func TestAccOriginResource_ObjectStorage(t *testing.T) {
 				),
 			},
 			{
-				Config: objectStoragesDataSourceConfig + `resource "cdn77_origin" "os" {
+				Config: acctest.Config(objectStoragesDataSourceConfig+`resource "cdn77_origin" "os" {
 					type = "object-storage"
 					label = "another label"
 					note = "some note"
 					acl = "private"
 					cluster_id = local.eu_cluster_id
-					bucket_name = "my-bucket"
-				}`,
+					bucket_name = "{bucketName}"
+				}`, "bucketName", bucketName),
 				ConfigPlanChecks: resource.ConfigPlanChecks{
 					PreApply: []plancheck.PlanCheck{
 						plancheck.ExpectResourceAction("cdn77_origin.os", plancheck.ResourceActionUpdate),
@@ -335,7 +338,7 @@ func TestAccOriginResource_ObjectStorage(t *testing.T) {
 					resource.TestCheckResourceAttrWith("cdn77_origin.os", "cluster_id", func(value string) error {
 						return acctest.Equal(value, clusterId)
 					}),
-					resource.TestCheckResourceAttr("cdn77_origin.os", "bucket_name", "my-bucket"),
+					resource.TestCheckResourceAttr("cdn77_origin.os", "bucket_name", bucketName),
 					resource.TestCheckResourceAttrSet("cdn77_origin.os", "access_key_id"),
 					resource.TestCheckResourceAttrSet("cdn77_origin.os", "access_key_secret"),
 					resource.TestCheckResourceAttrSet("cdn77_origin.os", "scheme"),
@@ -347,7 +350,7 @@ func TestAccOriginResource_ObjectStorage(t *testing.T) {
 					resource.TestCheckNoResourceAttr("cdn77_origin.os", "base_dir"),
 					checkObjectStorageOrigin(client, &originId, func(o *cdn77.ObjectStorageOriginDetail) error {
 						return errors.Join(
-							acctest.EqualField("bucket_name", o.BucketName, "my-bucket"),
+							acctest.EqualField("bucket_name", o.BucketName, bucketName),
 							acctest.EqualField("label", o.Label, "another label"),
 							acctest.NullFieldEqual("note", o.Note, "some note"),
 							acctest.EqualField("type", o.Type, provider.OriginTypeObjectStorage),
@@ -356,13 +359,13 @@ func TestAccOriginResource_ObjectStorage(t *testing.T) {
 				),
 			},
 			{
-				Config: objectStoragesDataSourceConfig + `resource "cdn77_origin" "os" {
+				Config: acctest.Config(objectStoragesDataSourceConfig+`resource "cdn77_origin" "os" {
 					type = "object-storage"
 					label = "another label"
 					acl = "private"
 					cluster_id = local.eu_cluster_id
-					bucket_name = "my-bucket"
-				}`,
+					bucket_name = "{bucketName}"
+				}`, "bucketName", bucketName),
 				ConfigPlanChecks: resource.ConfigPlanChecks{
 					PreApply: []plancheck.PlanCheck{
 						plancheck.ExpectResourceAction("cdn77_origin.os", plancheck.ResourceActionUpdate),
@@ -378,7 +381,7 @@ func TestAccOriginResource_ObjectStorage(t *testing.T) {
 					resource.TestCheckResourceAttrWith("cdn77_origin.os", "cluster_id", func(value string) error {
 						return acctest.Equal(value, clusterId)
 					}),
-					resource.TestCheckResourceAttr("cdn77_origin.os", "bucket_name", "my-bucket"),
+					resource.TestCheckResourceAttr("cdn77_origin.os", "bucket_name", bucketName),
 					resource.TestCheckResourceAttrSet("cdn77_origin.os", "access_key_id"),
 					resource.TestCheckResourceAttrSet("cdn77_origin.os", "access_key_secret"),
 					resource.TestCheckResourceAttrSet("cdn77_origin.os", "scheme"),
@@ -391,7 +394,7 @@ func TestAccOriginResource_ObjectStorage(t *testing.T) {
 					resource.TestCheckNoResourceAttr("cdn77_origin.os", "base_dir"),
 					checkObjectStorageOrigin(client, &originId, func(o *cdn77.ObjectStorageOriginDetail) error {
 						return errors.Join(
-							acctest.EqualField("bucket_name", o.BucketName, "my-bucket"),
+							acctest.EqualField("bucket_name", o.BucketName, bucketName),
 							acctest.EqualField("label", o.Label, "another label"),
 							acctest.NullField("note", o.Note),
 							acctest.EqualField("type", o.Type, provider.OriginTypeObjectStorage),
@@ -400,13 +403,13 @@ func TestAccOriginResource_ObjectStorage(t *testing.T) {
 				),
 			},
 			{
-				Config: objectStoragesDataSourceConfig + `resource "cdn77_origin" "os" {
+				Config: acctest.Config(objectStoragesDataSourceConfig+`resource "cdn77_origin" "os" {
 					type = "object-storage"
 					label = "another label"
 					acl = "authenticated-read"
 					cluster_id = local.eu_cluster_id
-					bucket_name = "my-bucket"
-				}`,
+					bucket_name = "{bucketName}"
+				}`, "bucketName", bucketName),
 				ConfigPlanChecks: resource.ConfigPlanChecks{
 					PreApply: []plancheck.PlanCheck{
 						plancheck.ExpectResourceAction("cdn77_origin.os", plancheck.ResourceActionDestroyBeforeCreate),
@@ -425,7 +428,7 @@ func TestAccOriginResource_ObjectStorage(t *testing.T) {
 					resource.TestCheckResourceAttrWith("cdn77_origin.os", "cluster_id", func(value string) error {
 						return acctest.Equal(value, clusterId)
 					}),
-					resource.TestCheckResourceAttr("cdn77_origin.os", "bucket_name", "my-bucket"),
+					resource.TestCheckResourceAttr("cdn77_origin.os", "bucket_name", bucketName),
 					resource.TestCheckResourceAttrSet("cdn77_origin.os", "access_key_id"),
 					resource.TestCheckResourceAttrSet("cdn77_origin.os", "access_key_secret"),
 					resource.TestCheckResourceAttrSet("cdn77_origin.os", "scheme"),
@@ -438,7 +441,7 @@ func TestAccOriginResource_ObjectStorage(t *testing.T) {
 					resource.TestCheckNoResourceAttr("cdn77_origin.os", "base_dir"),
 					checkObjectStorageOrigin(client, &originId, func(o *cdn77.ObjectStorageOriginDetail) error {
 						return errors.Join(
-							acctest.EqualField("bucket_name", o.BucketName, "my-bucket"),
+							acctest.EqualField("bucket_name", o.BucketName, bucketName),
 							acctest.EqualField("label", o.Label, "another label"),
 							acctest.NullField("note", o.Note),
 							acctest.EqualField("type", o.Type, provider.OriginTypeObjectStorage),
@@ -447,13 +450,13 @@ func TestAccOriginResource_ObjectStorage(t *testing.T) {
 				),
 			},
 			{
-				Config: objectStoragesDataSourceConfig + `resource "cdn77_origin" "os" {
+				Config: acctest.Config(objectStoragesDataSourceConfig+`resource "cdn77_origin" "os" {
 					type = "object-storage"
 					label = "another label"
 					acl = "authenticated-read"
 					cluster_id = local.us_cluster_id
-					bucket_name = "my-bucket"
-				}`,
+					bucket_name = "{bucketName}"
+				}`, "bucketName", bucketName),
 				ConfigPlanChecks: resource.ConfigPlanChecks{
 					PreApply: []plancheck.PlanCheck{
 						plancheck.ExpectResourceAction("cdn77_origin.os", plancheck.ResourceActionDestroyBeforeCreate),
@@ -475,7 +478,7 @@ func TestAccOriginResource_ObjectStorage(t *testing.T) {
 
 						return err
 					}),
-					resource.TestCheckResourceAttr("cdn77_origin.os", "bucket_name", "my-bucket"),
+					resource.TestCheckResourceAttr("cdn77_origin.os", "bucket_name", bucketName),
 					resource.TestCheckResourceAttrSet("cdn77_origin.os", "access_key_id"),
 					resource.TestCheckResourceAttrSet("cdn77_origin.os", "access_key_secret"),
 					resource.TestCheckResourceAttrSet("cdn77_origin.os", "scheme"),
@@ -488,7 +491,7 @@ func TestAccOriginResource_ObjectStorage(t *testing.T) {
 					resource.TestCheckNoResourceAttr("cdn77_origin.os", "base_dir"),
 					checkObjectStorageOrigin(client, &originId, func(o *cdn77.ObjectStorageOriginDetail) error {
 						return errors.Join(
-							acctest.EqualField("bucket_name", o.BucketName, "my-bucket"),
+							acctest.EqualField("bucket_name", o.BucketName, bucketName),
 							acctest.EqualField("label", o.Label, "another label"),
 							acctest.NullField("note", o.Note),
 							acctest.EqualField("type", o.Type, provider.OriginTypeObjectStorage),
@@ -497,13 +500,13 @@ func TestAccOriginResource_ObjectStorage(t *testing.T) {
 				),
 			},
 			{
-				Config: objectStoragesDataSourceConfig + `resource "cdn77_origin" "os" {
+				Config: acctest.Config(objectStoragesDataSourceConfig+`resource "cdn77_origin" "os" {
 					type = "object-storage"
 					label = "another label"
 					acl = "authenticated-read"
 					cluster_id = local.us_cluster_id
-					bucket_name = "lorem"
-				}`,
+					bucket_name = "{bucketName}"
+				}`, "bucketName", anotherBucketName),
 				ConfigPlanChecks: resource.ConfigPlanChecks{
 					PreApply: []plancheck.PlanCheck{
 						plancheck.ExpectResourceAction("cdn77_origin.os", plancheck.ResourceActionDestroyBeforeCreate),
@@ -522,7 +525,7 @@ func TestAccOriginResource_ObjectStorage(t *testing.T) {
 					resource.TestCheckResourceAttrWith("cdn77_origin.os", "cluster_id", func(value string) error {
 						return acctest.Equal(value, clusterId)
 					}),
-					resource.TestCheckResourceAttr("cdn77_origin.os", "bucket_name", "lorem"),
+					resource.TestCheckResourceAttr("cdn77_origin.os", "bucket_name", anotherBucketName),
 					resource.TestCheckResourceAttrSet("cdn77_origin.os", "access_key_id"),
 					resource.TestCheckResourceAttrSet("cdn77_origin.os", "access_key_secret"),
 					resource.TestCheckResourceAttrSet("cdn77_origin.os", "scheme"),
@@ -535,7 +538,7 @@ func TestAccOriginResource_ObjectStorage(t *testing.T) {
 					resource.TestCheckNoResourceAttr("cdn77_origin.os", "base_dir"),
 					checkObjectStorageOrigin(client, &originId, func(o *cdn77.ObjectStorageOriginDetail) error {
 						return errors.Join(
-							acctest.EqualField("bucket_name", o.BucketName, "lorem"),
+							acctest.EqualField("bucket_name", o.BucketName, anotherBucketName),
 							acctest.EqualField("label", o.Label, "another label"),
 							acctest.NullField("note", o.Note),
 							acctest.EqualField("type", o.Type, provider.OriginTypeObjectStorage),

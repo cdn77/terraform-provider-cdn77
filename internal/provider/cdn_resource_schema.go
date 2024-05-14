@@ -300,14 +300,6 @@ func CreateCdnResourceSchema() schema.Schema {
 					`When enabled the "query_string" option must be set to ignore all parameters.`,
 				Default: booldefault.StaticBool(false),
 			},
-			"quic_enabled": schema.BoolAttribute{
-				Optional: true,
-				Computed: true,
-				Description: `gQUIC is a protocol created by Google. It works with chromium-based browsers ` +
-					`and was originally designed for the transmission of HTTP/2 frames. ` +
-					`It incentivised a new standardised transport protocol called QUIC.`,
-				Default: booldefault.StaticBool(false),
-			},
 			"waf_enabled": schema.BoolAttribute{
 				Optional: true,
 				Computed: true,
