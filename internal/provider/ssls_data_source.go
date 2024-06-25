@@ -69,7 +69,7 @@ func (d *SslsDataSource) Read(ctx context.Context, _ datasource.ReadRequest, res
 
 	for _, ssl := range *response.JSON200 {
 		data := SslModel{Id: types.StringValue(ssl.Id)}
-		if ds := readSslDetails(ctx, &data, &ssl); ds != nil { //nolint:gosec // false positive since go1.22
+		if ds := readSslDetails(ctx, &data, &ssl); ds != nil {
 			resp.Diagnostics.Append(ds...)
 
 			return
