@@ -2,14 +2,21 @@ package provider
 
 import (
 	"context"
+	"encoding/base64"
+	"fmt"
+	"strings"
 
 	"github.com/cdn77/cdn77-client-go"
 	"github.com/cdn77/terraform-provider-cdn77/internal/util"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-var _ resource.ResourceWithConfigure = &SslResource{}
+var (
+	_ resource.ResourceWithConfigure   = &SslResource{}
+	_ resource.ResourceWithImportState = &SslResource{}
+)
 
 func NewSslResource() resource.Resource {
 	return &SslResource{}
@@ -131,4 +138,39 @@ func (r *SslResource) Delete(ctx context.Context, req resource.DeleteRequest, re
 	if !util.CheckResponse(&resp.Diagnostics, errMessage, response, response.JSON404, response.JSONDefault) {
 		return
 	}
+}
+
+func (*SslResource) ImportState(
+	ctx context.Context,
+	req resource.ImportStateRequest,
+	resp *resource.ImportStateResponse,
+) {
+	idParts := strings.Split(req.ID, ",")
+
+	if len(idParts) != 2 || idParts[0] == "" || idParts[1] == "" {
+		resp.Diagnostics.AddError(
+			"Unexpected Import Identifier",
+			fmt.Sprintf(
+				"Expected import identifier with format: <id>,<privateKey>. "+
+					"<privateKey> must be the whole PEM file (including headers) encoded via base64. Got: %q",
+				req.ID,
+			),
+		)
+
+		return
+	}
+
+	id, privateKeyBase64 := idParts[0], idParts[1]
+
+	privateKey, err := base64.StdEncoding.DecodeString(privateKeyBase64)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Invalid Private Key",
+			"Private Key must be base64 encoded key (including the PEM headers)")
+
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), id)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("private_key"), string(privateKey))...)
 }

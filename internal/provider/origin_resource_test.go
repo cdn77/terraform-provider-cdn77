@@ -244,22 +244,50 @@ func TestAccOriginResource_Aws(t *testing.T) {
 	})
 }
 
+func TestAccOriginResourceImport_Aws(t *testing.T) {
+	client := acctest.GetClient(t)
+	rsc := "cdn77_origin.aws"
+	var originId string
+
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.GetProviderFactories(),
+		CheckDestroy:             checkOriginsDestroyed(client),
+		Steps: []resource.TestStep{
+			{
+				Config: `resource "cdn77_origin" "aws" {
+					type = "aws"
+					label = "some label"
+					note = "some note"
+					aws_access_key_id = "keyid"
+					aws_access_key_secret = "keysecret"
+					aws_region = "eu"
+					scheme = "http"
+					host = "my-totally-random-custom-host.com"
+				}`,
+				Check: resource.TestCheckResourceAttrWith(rsc, "id", func(value string) error {
+					originId = value
+
+					return acctest.NotEqual(value, "")
+				}),
+			},
+			{
+				ResourceName: rsc,
+				ImportState:  true,
+				ImportStateIdFunc: func(*terraform.State) (string, error) {
+					return fmt.Sprintf("%s,aws,keysecret", originId), nil
+				},
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
 func TestAccOriginResource_ObjectStorage(t *testing.T) {
 	client := acctest.GetClient(t)
 	bucketName := "my-bucket-" + uuid.New().String()
 	anotherBucketName := "my-bucket-" + uuid.New().String()
 	var originId string
 	var clusterId string
-
-	const objectStoragesDataSourceConfig = `
-		data "cdn77_object_storages" "all" {
-		}
-
-		locals {
-			eu_cluster_id = one([for os in data.cdn77_object_storages.all.clusters : os.id if os.label == "EU"])
-			us_cluster_id = one([for os in data.cdn77_object_storages.all.clusters : os.id if os.label == "US"])
-		}
-	`
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: acctest.GetProviderFactories(),
@@ -598,6 +626,63 @@ func TestAccOriginResource_ObjectStorage(t *testing.T) {
 	})
 }
 
+func TestAccOriginResourceImport_ObjectStorage(t *testing.T) {
+	client := acctest.GetClient(t)
+	rsc := "cdn77_origin.os"
+	bucketName := "my-bucket-" + uuid.New().String()
+	var originId, clusterId, accessKeyId, accessKeySecret string
+
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.GetProviderFactories(),
+		CheckDestroy:             checkOriginsDestroyed(client),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.Config(objectStoragesDataSourceConfig+`resource "cdn77_origin" "os" {
+					type = "object-storage"
+					label = "some label"
+					note = "some note"
+					acl = "private"
+					cluster_id = local.eu_cluster_id
+					bucket_name = "{bucketName}"
+				}`, "bucketName", bucketName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrWith(rsc, "id", func(value string) error {
+						originId = value
+
+						return acctest.NotEqual(value, "")
+					}),
+					resource.TestCheckResourceAttrWith(rsc, "cluster_id", func(value string) error {
+						clusterId = value
+
+						return acctest.NotEqual(value, "")
+					}),
+					resource.TestCheckResourceAttrWith(rsc, "access_key_id", func(value string) error {
+						accessKeyId = value
+
+						return acctest.NotEqual(value, "")
+					}),
+					resource.TestCheckResourceAttrWith(rsc, "access_key_secret", func(value string) error {
+						accessKeySecret = value
+
+						return acctest.NotEqual(value, "")
+					}),
+				),
+			},
+			{
+				ResourceName: rsc,
+				ImportState:  true,
+				ImportStateIdFunc: func(*terraform.State) (string, error) {
+					return fmt.Sprintf(
+						"%s,object-storage,private,%s,%s,%s",
+						originId, clusterId, accessKeyId, accessKeySecret,
+					), nil
+				},
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
 func TestAccOriginResource_Url(t *testing.T) {
 	client := acctest.GetClient(t)
 	var originId string
@@ -821,12 +906,47 @@ func TestAccOriginResource_Url(t *testing.T) {
 	})
 }
 
+func TestAccOriginResourceImport_Url(t *testing.T) {
+	client := acctest.GetClient(t)
+	rsc := "cdn77_origin.url"
+	var originId string
+
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.GetProviderFactories(),
+		CheckDestroy:             checkOriginsDestroyed(client),
+		Steps: []resource.TestStep{
+			{
+				Config: `resource "cdn77_origin" "url" {
+					type = "url"
+					label = "some label"
+					note = "some note"
+					scheme = "http"
+					host = "my-totally-random-custom-host.com"
+				}`,
+				Check: resource.TestCheckResourceAttrWith(rsc, "id", func(value string) error {
+					originId = value
+
+					return acctest.NotEqual(value, "")
+				}),
+			},
+			{
+				ResourceName: rsc,
+				ImportState:  true,
+				ImportStateIdFunc: func(*terraform.State) (string, error) {
+					return fmt.Sprintf("%s,url", originId), nil
+				},
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
 func checkAwsOrigin(
 	client cdn77.ClientWithResponsesInterface,
 	originId *string,
 	fn func(o *cdn77.S3OriginDetail) error,
 ) func(*terraform.State) error {
-	return func(_ *terraform.State) error {
+	return func(*terraform.State) error {
 		response, err := client.OriginDetailAwsWithResponse(context.Background(), *originId)
 		message := fmt.Sprintf("failed to get Origin[id=%s]: %%s", *originId)
 
@@ -843,7 +963,7 @@ func checkObjectStorageOrigin(
 	originId *string,
 	fn func(o *cdn77.ObjectStorageOriginDetail) error,
 ) func(*terraform.State) error {
-	return func(_ *terraform.State) error {
+	return func(*terraform.State) error {
 		response, err := client.OriginDetailObjectStorageWithResponse(context.Background(), *originId)
 		message := fmt.Sprintf("failed to get Origin[id=%s]: %%s", *originId)
 
@@ -860,7 +980,7 @@ func checkUrlOrigin(
 	originId *string,
 	fn func(o *cdn77.UrlOriginDetail) error,
 ) func(*terraform.State) error {
-	return func(_ *terraform.State) error {
+	return func(*terraform.State) error {
 		response, err := client.OriginDetailUrlWithResponse(context.Background(), *originId)
 		message := fmt.Sprintf("failed to get Origin[id=%s]: %%s", *originId)
 
