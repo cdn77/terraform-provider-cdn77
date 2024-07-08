@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/cdn77/cdn77-client-go"
 	"github.com/cdn77/terraform-provider-cdn77/internal/util"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -17,6 +19,7 @@ import (
 var (
 	_ resource.ResourceWithConfigure        = &OriginResource{}
 	_ resource.ResourceWithConfigValidators = &OriginResource{}
+	_ resource.ResourceWithImportState      = &OriginResource{}
 )
 
 func NewOriginResource() resource.Resource {
@@ -142,6 +145,72 @@ func (r *OriginResource) Delete(ctx context.Context, req resource.DeleteRequest,
 		r.deleteUrl(ctx, &resp.Diagnostics, &resp.State, errMessage, id)
 	default:
 		addUnknownOriginTypeError(&resp.Diagnostics, data)
+	}
+}
+
+func (*OriginResource) ImportState(
+	ctx context.Context,
+	req resource.ImportStateRequest,
+	resp *resource.ImportStateResponse,
+) {
+	idParts := strings.Split(req.ID, ",")
+	if len(idParts) < 2 {
+		resp.Diagnostics.AddError(
+			"Invalid Import Identifier",
+			fmt.Sprintf(
+				`Expected one of: \n\t"<id>,url"\n\t"<id>,aws,<aws_access_key_secret>" \n\t`+
+					`"<id>,object-storage,<acl>,<cluster_id>,<access_key_id>,<access_key_secret>")\nGot: %q`,
+				req.ID,
+			),
+		)
+	}
+
+	id := idParts[0]
+	originType := idParts[1]
+
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), id)...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("type"), originType)...)
+
+	switch originType {
+	case OriginTypeAws:
+		if len(idParts) != 3 {
+			resp.Diagnostics.AddError(
+				"Invalid AWS Origin Import Identifier",
+				fmt.Sprintf(`Expected "<id>,aws,<aws_access_key_secret>"; got: %q`, req.ID),
+			)
+
+			return
+		}
+
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("aws_access_key_secret"), idParts[2])...)
+	case OriginTypeObjectStorage:
+		if len(idParts) != 6 {
+			resp.Diagnostics.AddError(
+				"Invalid Object Storage Origin Import Identifier",
+				fmt.Sprintf(
+					`Expected "<id>,object-storage,<acl>,<cluster_id>,<access_key_id>,<access_key_secret>"; got: %q`,
+					req.ID,
+				),
+			)
+
+			return
+		}
+
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("acl"), idParts[2])...)
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("cluster_id"), idParts[3])...)
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("access_key_id"), idParts[4])...)
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("access_key_secret"), idParts[5])...)
+	case OriginTypeUrl:
+		if len(idParts) != 2 {
+			resp.Diagnostics.AddError(
+				"Invalid URL Origin Import Identifier",
+				fmt.Sprintf(`Expected "<id>,url"; got: %q`, req.ID),
+			)
+
+			return
+		}
+	default:
+		addUnknownOriginTypeError(&resp.Diagnostics, OriginModel{Type: types.StringValue(originType)})
 	}
 }
 

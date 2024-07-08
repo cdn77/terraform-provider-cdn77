@@ -156,3 +156,15 @@ Optional:
 - `port` (Number)
 - `protocol` (String)
 - `query_key` (String)
+
+## Import
+
+Import is supported using the following syntax:
+
+```shell
+$ terraform import cdn77_cdn.example <id>
+
+# <id> must be the ID (unsigned integer) of the CDN
+# Example:
+$ terraform import cdn77_cdn.example 1837865409
+```

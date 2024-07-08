@@ -43,4 +43,9 @@ func TestAccObjectStoragesDataSource_All(t *testing.T) {
 const objectStoragesDataSourceConfig = `
 data "cdn77_object_storages" "all" {
 }
+
+locals {
+	eu_cluster_id = one([for os in data.cdn77_object_storages.all.clusters : os.id if os.label == "EU"])
+	us_cluster_id = one([for os in data.cdn77_object_storages.all.clusters : os.id if os.label == "US"])
+}
 `

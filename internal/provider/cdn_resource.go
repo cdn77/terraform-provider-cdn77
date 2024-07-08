@@ -2,6 +2,8 @@ package provider
 
 import (
 	"context"
+	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/cdn77/cdn77-client-go"
@@ -16,6 +18,7 @@ import (
 var (
 	_ resource.ResourceWithConfigure        = &CdnResource{}
 	_ resource.ResourceWithConfigValidators = &CdnResource{}
+	_ resource.ResourceWithImportState      = &CdnResource{}
 )
 
 func NewCdnResource() resource.Resource {
@@ -183,6 +186,24 @@ func (r *CdnResource) Delete(ctx context.Context, req resource.DeleteRequest, re
 	}
 
 	util.CheckResponse(&resp.Diagnostics, errMessage, response, response.JSON404, response.JSONDefault)
+}
+
+func (*CdnResource) ImportState(
+	ctx context.Context,
+	req resource.ImportStateRequest,
+	resp *resource.ImportStateResponse,
+) {
+	id, err := strconv.ParseUint(req.ID, 10, 64)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Invalid Import Identifier",
+			fmt.Sprintf("Expected unsigned integer, got: %q", req.ID),
+		)
+
+		return
+	}
+
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), id)...)
 }
 
 func (*CdnResource) createDefaultEditRequest() cdn77.CdnEditJSONRequestBody {

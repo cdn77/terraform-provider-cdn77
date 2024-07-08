@@ -2,6 +2,7 @@ package provider_test
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"sort"
@@ -91,12 +92,41 @@ func TestAccSslResource(t *testing.T) {
 	})
 }
 
+func TestAccSslResourceImport(t *testing.T) {
+	client := acctest.GetClient(t)
+	rsc := "cdn77_ssl.crt"
+	var sslId string
+
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.GetProviderFactories(),
+		CheckDestroy:             checkSslsDestroyed(client),
+		Steps: []resource.TestStep{
+			{
+				Config: acctest.Config(SslResourceConfig, "cert", sslTestCert1, "key", sslTestKey),
+				Check: resource.TestCheckResourceAttrWith(rsc, "id", func(value string) error {
+					sslId = value
+
+					return acctest.NotEqual(value, "")
+				}),
+			},
+			{
+				ResourceName:      rsc,
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateIdFunc: func(*terraform.State) (string, error) {
+					return fmt.Sprintf("%s,%s", sslId, base64.StdEncoding.EncodeToString([]byte(sslTestKey))), nil
+				},
+			},
+		},
+	})
+}
+
 func checkSsl(
 	client cdn77.ClientWithResponsesInterface,
 	sslId *string,
 	fn func(o *cdn77.Ssl) error,
 ) func(*terraform.State) error {
-	return func(_ *terraform.State) error {
+	return func(*terraform.State) error {
 		response, err := client.SslSniDetailWithResponse(context.Background(), *sslId)
 		message := fmt.Sprintf("failed to get SSL[id=%s]: %%s", *sslId)
 

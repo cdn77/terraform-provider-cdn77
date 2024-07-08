@@ -514,12 +514,47 @@ func TestAccCdnResource(t *testing.T) {
 	})
 }
 
+func TestAccCdnResourceImport(t *testing.T) {
+	client := acctest.GetClient(t)
+	rsc := "cdn77_cdn.lorem"
+	var cdnId string
+
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: acctest.GetProviderFactories(),
+		CheckDestroy: func(state *terraform.State) error {
+			return errors.Join(checkCdnsDestroyed(client)(state), checkOriginsDestroyed(client)(state))
+		},
+		Steps: []resource.TestStep{
+			{
+				Config: OriginResourceConfig + `resource "cdn77_cdn" "lorem" {
+					origin_id = cdn77_origin.url.id
+					label = "my cdn"
+					note = "custom note"
+				}`,
+				Check: resource.TestCheckResourceAttrWith(rsc, "id", func(value string) (err error) {
+					cdnId = value
+
+					return nil
+				}),
+			},
+			{
+				ResourceName: rsc,
+				ImportState:  true,
+				ImportStateIdFunc: func(*terraform.State) (string, error) {
+					return cdnId, nil
+				},
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
 func checkCdn(
 	client cdn77.ClientWithResponsesInterface,
 	cdnId *int,
 	fn func(o *cdn77.Cdn) error,
 ) func(*terraform.State) error {
-	return func(_ *terraform.State) error {
+	return func(*terraform.State) error {
 		response, err := client.CdnDetailWithResponse(context.Background(), *cdnId)
 		message := fmt.Sprintf("failed to get CDN[id=%d]: %%s", *cdnId)
 
