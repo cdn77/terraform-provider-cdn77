@@ -13,7 +13,7 @@ linters: # 2022-07-21 modified
     - durationcheck
     - errorlint
     - exhaustive
-    - exportloopref
+    - copyloopvar
     - gci
     - gochecknoglobals
     - gochecknoinits
@@ -33,7 +33,6 @@ linters: # 2022-07-21 modified
     - nilnil
     - nlreturn
     - nolintlint
-    #        - paralleltest # @todo check later, maybe enable
     - prealloc
     - predeclared
     - revive

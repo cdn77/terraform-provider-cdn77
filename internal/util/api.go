@@ -4,16 +4,18 @@ import (
 	"fmt"
 	"net/http"
 	"reflect"
+	"strconv"
 	"strings"
 
-	"github.com/cdn77/cdn77-client-go"
+	"github.com/cdn77/cdn77-client-go/v2"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/oapi-codegen/nullable"
 )
 
-type StatusCodeProvider interface {
+type Response interface {
 	StatusCode() int
+	Bytes() []byte
 }
 
 func IntPointerToInt64Value[T ~int](v *T) types.Int64 {
@@ -32,6 +34,14 @@ func Int64ValueToNullable[T ~int](v types.Int64) nullable.Nullable[T] {
 	return nullable.NewNullableWithValue(T(v.ValueInt64()))
 }
 
+func Int32ValueToNullable[T ~int](v types.Int32) nullable.Nullable[T] {
+	if v.IsNull() || v.IsUnknown() {
+		return nullable.NewNullNullable[T]()
+	}
+
+	return nullable.NewNullableWithValue(T(v.ValueInt32()))
+}
+
 func StringValueToNullable(v types.String) nullable.Nullable[string] {
 	if v.IsNull() {
 		return nullable.NewNullNullable[string]()
@@ -48,6 +58,14 @@ func NullableIntToInt64Value[T ~int](v nullable.Nullable[T]) types.Int64 {
 	return types.Int64Value(int64(v.MustGet()))
 }
 
+func NullableIntToInt32Value[T ~int](v nullable.Nullable[T]) types.Int32 {
+	if v.IsNull() || !v.IsSpecified() {
+		return types.Int32Null()
+	}
+
+	return types.Int32Value(int32(v.MustGet()))
+}
+
 func NullableToStringValue(v nullable.Nullable[string]) types.String {
 	if v.IsNull() || !v.IsSpecified() {
 		return types.StringNull()
@@ -56,27 +74,86 @@ func NullableToStringValue(v nullable.Nullable[string]) types.String {
 	return types.StringValue(v.MustGet())
 }
 
-func Pointer[T any](v T) *T {
-	return &v
+func ProcessResponse[T any](
+	diags *diag.Diagnostics,
+	response Response,
+	errMessage string,
+	okResponse *T,
+	fn func(*T),
+) {
+	if !processResponseErrors(diags, response, errMessage) {
+		return
+	}
+
+	if okResponse == nil {
+		unexpectedApiError(diags, response, errMessage)
+
+		return
+	}
+
+	fn(okResponse)
 }
 
-func CheckResponse(diags *diag.Diagnostics, message string, response StatusCodeProvider, errMessages ...any) bool {
-	for _, errMessage := range errMessages {
-		if reflect.ValueOf(errMessage).IsNil() {
+func ProcessEmptyResponse(diags *diag.Diagnostics, response Response, errMessage string, fn func()) {
+	if !processResponseErrors(diags, response, errMessage) {
+		return
+	}
+
+	if response.StatusCode() != http.StatusNoContent {
+		unexpectedApiError(diags, response, errMessage)
+
+		return
+	}
+
+	fn()
+}
+
+func ValidateDeletionResponse(diags *diag.Diagnostics, response Response, errMessage string) {
+	if response.StatusCode() == http.StatusNotFound {
+		return
+	}
+
+	ProcessEmptyResponse(diags, response, errMessage, func() {})
+}
+
+func processResponseErrors(diags *diag.Diagnostics, response Response, errMessage string) bool {
+	vResponse := reflect.Indirect(reflect.ValueOf(response))
+	tResponse := vResponse.Type()
+
+	for i := tResponse.NumField() - 1; i >= 0; i-- {
+		tField := tResponse.Field(i)
+
+		name, ok := strings.CutPrefix(tField.Name, "JSON")
+		if !ok {
+			continue
+		}
+
+		if status, err := strconv.Atoi(name); err != nil && name != "Default" || status < 300 {
+			continue
+		}
+
+		vField := vResponse.Field(i)
+		if vField.IsNil() {
 			continue
 		}
 
 		var detail string
-		switch m := errMessage.(type) {
+		switch m := vField.Interface().(type) {
 		case *cdn77.Errors:
-			detail = buildResponseErrMessage(response.StatusCode(), m.Errors, nil)
+			detail = buildResponseErrMessage(response, m.Errors, nil)
 		case *cdn77.FieldErrors:
-			detail = buildResponseErrMessage(response.StatusCode(), m.Errors, m.Fields)
+			detail = buildResponseErrMessage(response, m.Errors, m.Fields)
 		default:
-			panic(fmt.Sprintf(`unexpected error response type "%T" (HTTP %d)`, errMessage, response.StatusCode()))
+			detail = fmt.Sprintf(
+				"Unexpected error response type \"%T\"\nHTTP %d %s\n\n%s\n",
+				vField.Interface(),
+				response.StatusCode(),
+				http.StatusText(response.StatusCode()),
+				response.Bytes(),
+			)
 		}
 
-		diags.AddError(message, detail)
+		diags.AddError(errMessage, detail)
 
 		return false
 	}
@@ -84,7 +161,14 @@ func CheckResponse(diags *diag.Diagnostics, message string, response StatusCodeP
 	return true
 }
 
-func buildResponseErrMessage(statusCode int, errs []string, fields map[string][]string) string {
+func unexpectedApiError(diags *diag.Diagnostics, response Response, errMessage string) {
+	code := response.StatusCode()
+	detail := fmt.Sprintf("Unexpected API response\nHTTP %d %s\n\n%s\n", code, http.StatusText(code), response.Bytes())
+
+	diags.AddError(errMessage, detail)
+}
+
+func buildResponseErrMessage(response Response, errs []string, fields map[string][]string) string {
 	var fieldsMessage string
 	if fieldsCount := len(fields); fieldsCount != 0 {
 		fieldsMessage = "\n\nFollowing fields have some errors:\n"
@@ -101,10 +185,14 @@ func buildResponseErrMessage(statusCode int, errs []string, fields map[string][]
 		}
 	}
 
-	httpErr := fmt.Sprintf("HTTP %d %s", statusCode, http.StatusText(statusCode))
+	httpErr := fmt.Sprintf("HTTP %d %s", response.StatusCode(), http.StatusText(response.StatusCode()))
 
 	switch len(errs) {
 	case 0:
+		if fieldsMessage == "" {
+			return fmt.Sprintf("Received unexpected API response:\n\t%s\n%s", httpErr, response.Bytes())
+		}
+
 		return fmt.Sprintf("Received unexpected API response:\n\t%s%s", httpErr, fieldsMessage)
 	case 1:
 		return fmt.Sprintf("Received unexpected API error:\n\t%s%s\n\n%s", errs[0], fieldsMessage, httpErr)

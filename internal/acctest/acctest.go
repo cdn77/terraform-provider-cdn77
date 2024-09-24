@@ -4,16 +4,18 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"reflect"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/cdn77/cdn77-client-go"
+	"github.com/cdn77/cdn77-client-go/v2"
 	"github.com/cdn77/terraform-provider-cdn77/internal/provider"
+	"github.com/cdn77/terraform-provider-cdn77/internal/util"
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 )
 
 func GetProviderFactories() map[string]func() (tfprotov6.ProviderServer, error) {
@@ -69,7 +71,7 @@ func GetClientErr() (cdn77.ClientWithResponsesInterface, error) {
 	return client, nil
 }
 
-func AssertResponseOk(t *testing.T, message string, response any, err error) {
+func AssertResponseOk(t *testing.T, message string, response util.Response, err error) {
 	t.Helper()
 
 	if err := CheckResponse(message, response, err); err != nil {
@@ -77,34 +79,20 @@ func AssertResponseOk(t *testing.T, message string, response any, err error) {
 	}
 }
 
-func CheckResponse(message string, response any, err error) error {
-	vResponse := reflect.Indirect(reflect.ValueOf(response))
-
+func CheckResponse(message string, response util.Response, err error) error {
 	if err != nil {
 		return fmt.Errorf(message, err)
 	}
 
-	statusCodeMethod := vResponse.MethodByName("StatusCode")
-	if !statusCodeMethod.IsValid() {
-		return fmt.Errorf(message, "missing StatusCode method on the response object")
-	}
-
-	values := statusCodeMethod.Call(nil)
-	if len(values) != 1 || !values[0].CanInt() {
-		return fmt.Errorf(message, "unexpected StatusCode method signature")
-	}
-
-	statusCode := int(values[0].Int())
+	statusCode := response.StatusCode()
 	if statusCode >= 200 && statusCode <= 204 {
 		return nil
 	}
 
-	var body string
-	if vBody := vResponse.FieldByName("Body"); vBody.IsValid() {
-		body = string(vBody.Bytes())
-	}
-
-	return fmt.Errorf(message, fmt.Sprintf("unexpected HTTP status code: %d; response: %s", statusCode, body))
+	return fmt.Errorf(
+		message,
+		fmt.Sprintf("unexpected HTTP status code: %d; response: %s", statusCode, response.Bytes()),
+	)
 }
 
 func Config(config string, keyAndValues ...any) string {
@@ -129,4 +117,40 @@ func Config(config string, keyAndValues ...any) string {
 	}
 
 	return config
+}
+
+func ConfigPlanChecks(rsc string, action plancheck.ResourceActionType) resource.ConfigPlanChecks {
+	return resource.ConfigPlanChecks{PreApply: []plancheck.PlanCheck{plancheck.ExpectResourceAction(rsc, action)}}
+}
+
+func Run(t *testing.T, checkDestroy resource.TestCheckFunc, steps ...resource.TestStep) {
+	t.Helper()
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: GetProviderFactories(),
+		CheckDestroy:             checkDestroy,
+		Steps:                    steps,
+	})
+}
+
+func CheckAndAssignAttr(rsc string, attr string, target *string) resource.TestCheckFunc {
+	return resource.TestCheckResourceAttrWith(rsc, attr, func(value string) error {
+		*target = value
+
+		return NotEqual(value, "")
+	})
+}
+
+func CheckAndReassignAttr(rsc string, attr string, target *string) resource.TestCheckFunc {
+	return resource.TestCheckResourceAttrWith(rsc, attr, func(value string) error {
+		err := errors.Join(NotEqual(value, *target), NotEqual(value, ""))
+		*target = value
+
+		return err
+	})
+}
+
+func CheckAttr(rsc string, attr string, target *string) resource.TestCheckFunc {
+	return resource.TestCheckResourceAttrWith(rsc, attr, func(value string) error {
+		return EqualField(attr, value, *target)
+	})
 }

@@ -14,8 +14,8 @@ CDN resource allows you to manage your CDNs
 
 ```terraform
 resource "cdn77_cdn" "example" {
-  origin_id = cdn77_origin.example.id
   label     = "Static content for example.com"
+  origin_id = cdn77_origin_url.example.id
   cnames    = ["cdn.example.com"]
 }
 ```
@@ -51,7 +51,6 @@ resource "cdn77_cdn" "example" {
 
 - `creation_time` (String) Timestamp when CDN was created
 - `id` (Number) ID of the CDN. This is also used as the CDN URL
-- `origin_protection_enabled` (Boolean) Enabled origin protection can ease the load on your server or even hide it from direct incoming traffic with our proxy servers.
 - `url` (String) URL of the CDN. Automatically generated when the CDN is created. The number is the same as the CDN ID.
 
 <a id="nestedatt--cache"></a>
@@ -128,12 +127,12 @@ Optional:
 Optional:
 
 - `token` (String, Sensitive) Token length is between 8 and 64 characters.
-- `type` (String) <ol>
+- `type` (String) <ul>
 	<li>parameter - Token will be in the query string - e.g.: /video.mp4?secure=MY_SECURE_TOKEN.</li>
 	<li>path - Token will be in the path - e.g.: /MY_SECURE_TOKEN/video.mp4.</li>
 	<li>none - Use to disable secure token.</li>
 	<li>highwinds</li>
-</ol>
+</ul>
 
 
 <a id="nestedatt--ssl"></a>
@@ -142,7 +141,7 @@ Optional:
 Optional:
 
 - `ssl_id` (String) ID (UUID) of the SSL certificate
-- `type` (String) Available values: instantSsl, none, SNI
+- `type` (String) Possible values: instantSsl, none, SNI
 
 
 <a id="nestedatt--stream"></a>
@@ -165,6 +164,7 @@ Import is supported using the following syntax:
 $ terraform import cdn77_cdn.example <id>
 
 # <id> must be the ID (unsigned integer) of the CDN
+
 # Example:
 $ terraform import cdn77_cdn.example 1837865409
 ```

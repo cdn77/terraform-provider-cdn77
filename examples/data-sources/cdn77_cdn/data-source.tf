@@ -1,3 +1,3 @@
 data "cdn77_cdn" "example" {
-  id = 7364999192
+  id = 1837865409
 }

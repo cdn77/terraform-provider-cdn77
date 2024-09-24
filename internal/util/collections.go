@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 )
 
 func StringSetToSlice(ctx context.Context, diags *diag.Diagnostics, attrPath path.Path, s types.Set) ([]string, bool) {
@@ -86,4 +88,22 @@ func StringMapToMap(
 	}
 
 	return stringMap, true
+}
+
+func SetValueFrom(ctx context.Context, diags *diag.Diagnostics, elemType attr.Type, elements any) basetypes.SetValue {
+	set, ds := types.SetValueFrom(ctx, elemType, elements)
+	if ds != nil {
+		diags.Append(ds...)
+	}
+
+	return set
+}
+
+func MapValueFrom(ctx context.Context, diags *diag.Diagnostics, elemType attr.Type, elements any) basetypes.MapValue {
+	m, ds := types.MapValueFrom(ctx, elemType, elements)
+	if ds != nil {
+		diags.Append(ds...)
+	}
+
+	return m
 }

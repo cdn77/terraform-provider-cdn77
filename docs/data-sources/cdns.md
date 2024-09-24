@@ -29,11 +29,127 @@ data "cdn77_cdns" "all" {
 
 Read-Only:
 
+- `cache` (Attributes) Your files will remain cached for the specified duration, after which your origin will be checked for an updated version of your files. Expiry/cache-control headers override this setting. (see [below for nested schema](#nestedatt--cdns--cache))
 - `cnames` (Set of String) CNAME assigned to CDN. CNAME should be mapped via DNS to CDN URL. Otherwise it's not possible to generate an SSL certificate for any related CNAME.
 - `creation_time` (String) Timestamp when CDN was created
+- `geo_protection` (Attributes) Geo protection enables you to control which countries can access your content directly (see [below for nested schema](#nestedatt--cdns--geo_protection))
+- `headers` (Attributes) (see [below for nested schema](#nestedatt--cdns--headers))
+- `hotlink_protection` (Attributes) Hotlink protection enables you to control which hostnames/domains can link to and access your content directly (see [below for nested schema](#nestedatt--cdns--hotlink_protection))
+- `https_redirect` (Attributes) If enabled, all requests via HTTP are redirected to HTTPS. Verify HTTPS availability of CNAMEs before activating, if applicable. (see [below for nested schema](#nestedatt--cdns--https_redirect))
 - `id` (Number) ID of the CDN. This is also used as the CDN URL
+- `ip_protection` (Attributes) IP protection enables you to control which networks can access your content directly (see [below for nested schema](#nestedatt--cdns--ip_protection))
 - `label` (String) The label helps you to identify your CDN
 - `mp4_pseudo_streaming_enabled` (Boolean) Turn this option on if using a flash-based video player with MP4 files. Pseudo-streaming is used mainly in flash players. HTML5 players use range-requests. When enabled the "query_string" option must be set to ignore all parameters.
 - `note` (String) Optional note
+- `origin_headers` (Map of String) Custom HTTP headers included in requests sent to the origin server
 - `origin_id` (String) ID (UUID) of attached Origin (content source for CDN)
+- `query_string` (Attributes) Enabling this feature will ignore the query string, allowing URLs with query strings to cache properly. This is particularly useful if you tag your URLs with tracking/marketing parameters, for example. (see [below for nested schema](#nestedatt--cdns--query_string))
+- `rate_limit_enabled` (Boolean) When enabled, this feature limits the data transfer rate by setting "limit_rate" based on the "rs" URL parameter and "limit_rate_after" by the value from the "ri" URL parameter.
+- `secure_token` (Attributes) This feature allows you to serve your content using signed URLs. You can enable your users to download secured content from the CDN with a valid hash. Note: When you check this option, make sure to generate secured links to access your content. (see [below for nested schema](#nestedatt--cdns--secure_token))
+- `ssl` (Attributes) (see [below for nested schema](#nestedatt--cdns--ssl))
+- `stream` (Attributes) Detail parameters of stream CDN (see [below for nested schema](#nestedatt--cdns--stream))
 - `url` (String) URL of the CDN. Automatically generated when the CDN is created. The number is the same as the CDN ID.
+- `waf_enabled` (Boolean) Protect your website against XSS, SQL injection and more with our SmartWAF. We're using OWASP Core Rule Set (CRS) to protect your data against the most exploited vulnerabilities.
+
+<a id="nestedatt--cdns--cache"></a>
+### Nested Schema for `cdns.cache`
+
+Read-Only:
+
+- `max_age` (Number) In minutes
+- `max_age_404` (Number) In seconds
+- `requests_with_cookies_enabled` (Boolean) When disabled, requests with cookies will ignore changing cookie headers allowing all requests to hit the cache. When enabled, requests with cookies will be handled separately, so when the cookie changes it will not hit the previously cached request with different cookie options.
+
+
+<a id="nestedatt--cdns--geo_protection"></a>
+### Nested Schema for `cdns.geo_protection`
+
+Read-Only:
+
+- `countries` (Set of String) We are using ISO 3166-1 alpha-2 code
+- `type` (String) With "type": "blocklist" all countries set in the "countries" parameter are not allowed. With "type": "passlist" only countries set in the "countries" parameter are allowed.
+
+
+<a id="nestedatt--cdns--headers"></a>
+### Nested Schema for `cdns.headers`
+
+Read-Only:
+
+- `content_disposition_type` (String) When the "type" is set to "parameter" the Content-Disposition is defined by the "cd" parameter in the URL, often set to "attachment". The filename is specified using the "fn" parameter in the URL.
+- `cors_enabled` (Boolean) The "Access-Control-Allow-Origin:" response header will always act in accordance with the "Origin:" request header sent by the client. For example, a request including the HTTP header "Origin: https://www.cdn77.com" will translate to the response header "Access-Control-Allow-Origin: https://www.cdn77.com". Files remain cached while the request/response header changes.
+- `cors_timing_enabled` (Boolean) When enabled "Timing-Allow-Origin" CORS header is set
+- `cors_wildcard_enabled` (Boolean) When enabled the wildcard value (*) is set in CORS headers
+- `host_header_forwarding_enabled` (Boolean) When fetching the content from the origin server, our edge servers will pass the host header that was included in the request between the user and our edge server.
+
+
+<a id="nestedatt--cdns--hotlink_protection"></a>
+### Nested Schema for `cdns.hotlink_protection`
+
+Read-Only:
+
+- `domains` (Set of String)
+- `empty_referer_denied` (Boolean) Enabling this parameter prevents your content from being directly accessed by sources that send empty referrers.
+- `type` (String) With "type": "blocklist" all domains set in the "domains" parameter are not allowed. With "type": "passlist" only domains in "domains" parameter are allowed.
+
+
+<a id="nestedatt--cdns--https_redirect"></a>
+### Nested Schema for `cdns.https_redirect`
+
+Read-Only:
+
+- `code` (Number) 301 for permanent redirect and 302 for temporary redirect. If you are not sure, select the default 301 code.
+- `enabled` (Boolean)
+
+
+<a id="nestedatt--cdns--ip_protection"></a>
+### Nested Schema for `cdns.ip_protection`
+
+Read-Only:
+
+- `ips` (Set of String)
+- `type` (String) With "type": "blocklist" all IP addresses set in the "ips" parameter are not allowed. With "type": "passlist" only IP addresses in "ips" parameter are allowed.
+
+
+<a id="nestedatt--cdns--query_string"></a>
+### Nested Schema for `cdns.query_string`
+
+Read-Only:
+
+- `ignore_type` (String)
+- `parameters` (Set of String) List of parameters used when "ignore_type" is set to "list"
+
+
+<a id="nestedatt--cdns--secure_token"></a>
+### Nested Schema for `cdns.secure_token`
+
+Read-Only:
+
+- `token` (String, Sensitive) Token length is between 8 and 64 characters.
+- `type` (String) <ul>
+	<li>parameter - Token will be in the query string - e.g.: /video.mp4?secure=MY_SECURE_TOKEN.</li>
+	<li>path - Token will be in the path - e.g.: /MY_SECURE_TOKEN/video.mp4.</li>
+	<li>none - Use to disable secure token.</li>
+	<li>highwinds</li>
+</ul>
+
+
+<a id="nestedatt--cdns--ssl"></a>
+### Nested Schema for `cdns.ssl`
+
+Read-Only:
+
+- `ssl_id` (String) ID (UUID) of the SSL certificate
+- `type` (String) Possible values: instantSsl, none, SNI
+
+
+<a id="nestedatt--cdns--stream"></a>
+### Nested Schema for `cdns.stream`
+
+Read-Only:
+
+- `origin_url` (String)
+- `password` (String, Sensitive)
+- `path` (String)
+- `port` (Number)
+- `protocol` (String)
+- `query_key` (String)

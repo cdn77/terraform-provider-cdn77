@@ -24,8 +24,17 @@ Object Storages data source allows you to read all available Object Storage clus
 
 Read-Only:
 
-- `host` (String)
 - `id` (String) ID (UUID) of the Object Storage cluster
-- `label` (String)
-- `port` (Number)
-- `scheme` (String)
+- `label` (String) Label of the Object Storage cluster
+- `url` (String) Absolute URL of this resource. Alternative to the attribute "url_parts".
+- `url_parts` (Attributes) Set of attributes describing the resource URL. Alternative to the attribute "url". (see [below for nested schema](#nestedatt--clusters--url_parts))
+
+<a id="nestedatt--clusters--url_parts"></a>
+### Nested Schema for `clusters.url_parts`
+
+Read-Only:
+
+- `base_path` (String) Path to the directory where the content is stored
+- `host` (String) Network host; can be a domain name or an IP address
+- `port` (Number) Port number between 1 and 65535 (if not specified, default scheme port is used)
+- `scheme` (String) URL scheme; can be either "http" or "https"

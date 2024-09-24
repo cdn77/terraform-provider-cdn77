@@ -5,19 +5,20 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/cdn77/cdn77-client-go"
-	"github.com/cdn77/terraform-provider-cdn77/internal/provider"
+	"github.com/cdn77/cdn77-client-go/v2"
+	"github.com/cdn77/terraform-provider-cdn77/internal/provider/origin"
+	"github.com/cdn77/terraform-provider-cdn77/internal/util"
 )
 
 func DeleteOrigin(client cdn77.ClientWithResponsesInterface, originType string, id string) (err error) {
-	var response any
+	var response util.Response
 
 	switch originType {
-	case provider.OriginTypeAws:
+	case origin.TypeAws:
 		response, err = client.OriginDeleteAwsWithResponse(context.Background(), id)
-	case provider.OriginTypeObjectStorage:
+	case origin.TypeObjectStorage:
 		response, err = client.OriginDeleteObjectStorageWithResponse(context.Background(), id)
-	case provider.OriginTypeUrl:
+	case origin.TypeUrl:
 		response, err = client.OriginDeleteUrlWithResponse(context.Background(), id)
 	default:
 		panic(fmt.Sprintf("unknown Origin type: %s", originType))

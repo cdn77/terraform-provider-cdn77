@@ -73,5 +73,5 @@ jobs:
             -   env:
                     TF_ACC: "1"
                     CDN77_TOKEN: ${{ secrets.CDN77_TOKEN }}
-                run: go test -v ./internal/provider/
+                run: go test -p 1 -v --count 1 ./...
                 timeout-minutes: 10

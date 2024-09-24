@@ -35,8 +35,8 @@ func TestMain(m *testing.M) {
 			return nil
 		},
 	})
-	resource.AddTestSweepers("cdn77_origin", &resource.Sweeper{
-		Name:         "cdn77_origin",
+	resource.AddTestSweepers("cdn77_origin_*", &resource.Sweeper{
+		Name:         "cdn77_origin_*",
 		Dependencies: []string{"cdn77_cdn"},
 		F: func(_ string) error {
 			client, err := acctest.GetClientErr()

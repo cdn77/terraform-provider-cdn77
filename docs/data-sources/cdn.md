@@ -14,7 +14,7 @@ CDN resource allows you to manage your CDNs
 
 ```terraform
 data "cdn77_cdn" "example" {
-  id = 7364999192
+  id = 1837865409
 }
 ```
 
@@ -40,7 +40,6 @@ data "cdn77_cdn" "example" {
 - `note` (String) Optional note
 - `origin_headers` (Map of String) Custom HTTP headers included in requests sent to the origin server
 - `origin_id` (String) ID (UUID) of attached Origin (content source for CDN)
-- `origin_protection_enabled` (Boolean) Enabled origin protection can ease the load on your server or even hide it from direct incoming traffic with our proxy servers.
 - `query_string` (Attributes) Enabling this feature will ignore the query string, allowing URLs with query strings to cache properly. This is particularly useful if you tag your URLs with tracking/marketing parameters, for example. (see [below for nested schema](#nestedatt--query_string))
 - `rate_limit_enabled` (Boolean) When enabled, this feature limits the data transfer rate by setting "limit_rate" based on the "rs" URL parameter and "limit_rate_after" by the value from the "ri" URL parameter.
 - `secure_token` (Attributes) This feature allows you to serve your content using signed URLs. You can enable your users to download secured content from the CDN with a valid hash. Note: When you check this option, make sure to generate secured links to access your content. (see [below for nested schema](#nestedatt--secure_token))
@@ -123,12 +122,12 @@ Read-Only:
 Read-Only:
 
 - `token` (String, Sensitive) Token length is between 8 and 64 characters.
-- `type` (String) <ol>
+- `type` (String) <ul>
 	<li>parameter - Token will be in the query string - e.g.: /video.mp4?secure=MY_SECURE_TOKEN.</li>
 	<li>path - Token will be in the path - e.g.: /MY_SECURE_TOKEN/video.mp4.</li>
 	<li>none - Use to disable secure token.</li>
 	<li>highwinds</li>
-</ol>
+</ul>
 
 
 <a id="nestedatt--ssl"></a>
@@ -137,7 +136,7 @@ Read-Only:
 Read-Only:
 
 - `ssl_id` (String) ID (UUID) of the SSL certificate
-- `type` (String) Available values: instantSsl, none, SNI
+- `type` (String) Possible values: instantSsl, none, SNI
 
 
 <a id="nestedatt--stream"></a>
