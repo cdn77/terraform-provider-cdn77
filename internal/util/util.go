@@ -7,3 +7,7 @@ func If[T any](condition bool, ifTrueValue T, elseValue T) T { //nolint:revive /
 
 	return elseValue
 }
+
+func Pointer[T any](v T) *T {
+	return &v
+}

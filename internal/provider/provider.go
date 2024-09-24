@@ -3,12 +3,15 @@ package provider
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"strconv"
 	"time"
 
-	"github.com/cdn77/cdn77-client-go"
+	"github.com/cdn77/cdn77-client-go/v2"
+	"github.com/cdn77/terraform-provider-cdn77/internal/mapping"
+	"github.com/cdn77/terraform-provider-cdn77/internal/provider/origin"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -177,21 +180,25 @@ func (*Cdn77Provider) getConfig(
 
 func (*Cdn77Provider) Resources(context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
-		NewCdnResource,
-		NewOriginResource,
-		NewSslResource,
+		mapping.ResourceFactory(mapping.Cdn),
+		mapping.ResourceFactory(mapping.OriginAws),
+		mapping.ResourceFactory(mapping.OriginObjectStorage),
+		mapping.ResourceFactory(mapping.OriginUrl),
+		mapping.ResourceFactory(mapping.Ssl),
 	}
 }
 
 func (*Cdn77Provider) DataSources(context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
-		NewCdnDataSource,
-		NewCdnsDataSource,
-		NewObjectStoragesDataSource,
-		NewOriginDataSource,
-		NewOriginsDataSource,
-		NewSslDataSource,
-		NewSslsDataSource,
+		mapping.DataSourceFactory(mapping.Cdn),
+		mapping.DataSourceFactory(mapping.Cdns),
+		mapping.DataSourceFactory(mapping.ObjectStorages),
+		mapping.DataSourceFactory(mapping.OriginAws),
+		mapping.DataSourceFactory(mapping.OriginObjectStorage),
+		mapping.DataSourceFactory(mapping.OriginUrl),
+		origin.NewAllDataSource,
+		mapping.DataSourceFactory(mapping.Ssl),
+		mapping.DataSourceFactory(mapping.Ssls),
 	}
 }
 
@@ -203,15 +210,27 @@ func New(version string) func() provider.Provider {
 	}
 }
 
+type RoundTripperFunc func(*http.Request) (*http.Response, error)
+
+func (fn RoundTripperFunc) RoundTrip(req *http.Request) (*http.Response, error) {
+	return fn(req)
+}
+
 func NewClient(endpoint string, token string, timeout time.Duration) (cdn77.ClientWithResponsesInterface, error) {
-	httpClient := &http.Client{}
-	if timeout > 0 {
-		httpClient.Timeout = timeout
+	dialer := &net.Dialer{}
+	transport := &http.Transport{
+		Proxy:                 http.ProxyFromEnvironment,
+		DialContext:           dialer.DialContext,
+		MaxIdleConns:          10,
+		MaxConnsPerHost:       10,
+		IdleConnTimeout:       30 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
 	}
 
 	client, err := cdn77.NewClientWithResponses(
 		endpoint,
-		cdn77.WithHTTPClient(httpClient),
+		cdn77.WithHTTPClient(&http.Client{Transport: transport, Timeout: timeout}),
 		cdn77.WithRequestEditorFn(func(_ context.Context, req *http.Request) error {
 			req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 

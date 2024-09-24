@@ -32,5 +32,4 @@ Read-Only:
 - `certificate` (String) SNI certificate
 - `expires_at` (String) Date and time of the SNI certificate expiration
 - `id` (String) ID (UUID) of the SSL certificate
-- `private_key` (String, Sensitive) Private key associated with the certificate
 - `subjects` (Set of String) Subjects (domain names) of the certificate

@@ -90,6 +90,17 @@ func (c *ResourceDataSourceSchemaConverter) convertAttributes(
 				DeprecationMessage:  rscAttr.DeprecationMessage,
 				Validators:          If(isRequired, rscAttr.Validators, nil),
 			}
+		case rsc_schema.Int32Attribute:
+			dsAttr = ds_schema.Int32Attribute{
+				CustomType:          rscAttr.CustomType,
+				Required:            isRequired,
+				Computed:            !isRequired,
+				Sensitive:           rscAttr.Sensitive,
+				Description:         rscAttr.Description,
+				MarkdownDescription: rscAttr.MarkdownDescription,
+				DeprecationMessage:  rscAttr.DeprecationMessage,
+				Validators:          If(isRequired, rscAttr.Validators, nil),
+			}
 		case rsc_schema.SetAttribute:
 			dsAttr = ds_schema.SetAttribute{
 				ElementType:         rscAttr.ElementType,

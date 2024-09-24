@@ -3,7 +3,7 @@ package util
 import (
 	"fmt"
 
-	"github.com/cdn77/cdn77-client-go"
+	"github.com/cdn77/cdn77-client-go/v2"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 )
 

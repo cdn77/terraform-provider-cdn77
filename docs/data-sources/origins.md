@@ -22,26 +22,86 @@ data "cdn77_origins" "all" {
 
 ### Read-Only
 
-- `origins` (Attributes List) List of all Origins (see [below for nested schema](#nestedatt--origins))
+- `aws` (Attributes List) List of all AWS Origins (see [below for nested schema](#nestedatt--aws))
+- `object_storage` (Attributes List) List of all Object Storage Origins (see [below for nested schema](#nestedatt--object_storage))
+- `url` (Attributes List) List of all URL Origins (see [below for nested schema](#nestedatt--url))
 
-<a id="nestedatt--origins"></a>
-### Nested Schema for `origins`
+<a id="nestedatt--aws"></a>
+### Nested Schema for `aws`
 
 Read-Only:
 
-- `access_key_id` (String) Access key to your Object Storage bucket
-- `access_key_secret` (String, Sensitive) Access secret to your Object Storage bucket
-- `acl` (String) Object Storage access key ACL
-- `aws_access_key_id` (String) AWS access key ID
-- `aws_access_key_secret` (String, Sensitive) AWS access key secret
-- `aws_region` (String) AWS region
-- `base_dir` (String) Directory where the content is stored on the URL Origin
-- `bucket_name` (String) Name of your Object Storage bucket
-- `cluster_id` (String) ID of the Object Storage storage cluster
-- `host` (String) Origin host without scheme and port. Can be domain name or IP address
+- `access_key_id` (String) AWS access key ID
 - `id` (String) Origin ID (UUID)
 - `label` (String) The label helps you to identify your Origin
 - `note` (String) Optional note for the Origin
-- `port` (Number) Origin port number. If not specified, default scheme port is used
-- `scheme` (String) Scheme of the Origin
-- `type` (String) Type of the origin; one of [aws object-storage url]
+- `region` (String) AWS region
+- `url` (String) Absolute URL of this resource. Alternative to the attribute "url_parts".
+- `url_parts` (Attributes) Set of attributes describing the resource URL. Alternative to the attribute "url". (see [below for nested schema](#nestedatt--aws--url_parts))
+
+<a id="nestedatt--aws--url_parts"></a>
+### Nested Schema for `aws.url_parts`
+
+Read-Only:
+
+- `base_path` (String) Path to the directory where the content is stored
+- `host` (String) Network host; can be a domain name or an IP address
+- `port` (Number) Port number between 1 and 65535 (if not specified, default scheme port is used)
+- `scheme` (String) URL scheme; can be either "http" or "https"
+
+
+
+<a id="nestedatt--object_storage"></a>
+### Nested Schema for `object_storage`
+
+Read-Only:
+
+- `bucket_name` (String) Name of your Object Storage bucket
+- `id` (String) Origin ID (UUID)
+- `label` (String) The label helps you to identify your Origin
+- `note` (String) Optional note for the Origin
+- `url` (String) Absolute URL of this resource. Alternative to the attribute "url_parts".
+- `url_parts` (Attributes) Set of attributes describing the resource URL. Alternative to the attribute "url". (see [below for nested schema](#nestedatt--object_storage--url_parts))
+- `usage` (Attributes) Usage statistics of the Object Storage bucket (see [below for nested schema](#nestedatt--object_storage--usage))
+
+<a id="nestedatt--object_storage--url_parts"></a>
+### Nested Schema for `object_storage.url_parts`
+
+Read-Only:
+
+- `base_path` (String) Path to the directory where the content is stored
+- `host` (String) Network host; can be a domain name or an IP address
+- `port` (Number) Port number between 1 and 65535 (if not specified, default scheme port is used)
+- `scheme` (String) URL scheme; can be either "http" or "https"
+
+
+<a id="nestedatt--object_storage--usage"></a>
+### Nested Schema for `object_storage.usage`
+
+Read-Only:
+
+- `files` (Number) Number of files stored on the Object Storage bucket
+- `size_bytes` (Number) Total size of the Object Storage bucket in bytes
+
+
+
+<a id="nestedatt--url"></a>
+### Nested Schema for `url`
+
+Read-Only:
+
+- `id` (String) Origin ID (UUID)
+- `label` (String) The label helps you to identify your Origin
+- `note` (String) Optional note for the Origin
+- `url` (String) Absolute URL of this resource. Alternative to the attribute "url_parts".
+- `url_parts` (Attributes) Set of attributes describing the resource URL. Alternative to the attribute "url". (see [below for nested schema](#nestedatt--url--url_parts))
+
+<a id="nestedatt--url--url_parts"></a>
+### Nested Schema for `url.url_parts`
+
+Read-Only:
+
+- `base_path` (String) Path to the directory where the content is stored
+- `host` (String) Network host; can be a domain name or an IP address
+- `port` (Number) Port number between 1 and 65535 (if not specified, default scheme port is used)
+- `scheme` (String) URL scheme; can be either "http" or "https"
