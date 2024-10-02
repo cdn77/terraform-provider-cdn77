@@ -536,7 +536,6 @@ func CreateResourceSchema() schema.Schema {
 							string(cdn77.InstantSsl),
 							string(cdn77.None),
 							string(cdn77.SNI),
-							string(cdn77.SAN),
 						)},
 						Default: stringdefault.StaticString(string(cdn77.InstantSsl)),
 					},
