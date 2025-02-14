@@ -281,8 +281,6 @@ func (r *Resource) createEditRequest( //nolint:cyclop
 
 	request.Ssl.Type = cdn77.SslType(data.Ssl.Type.ValueString())
 
-	request.Waf.Enabled = data.WafEnabled.ValueBool()
-
 	return request, true
 }
 
@@ -307,7 +305,6 @@ func (*Resource) createDefaultEditRequest() cdn77.CdnEditJSONRequestBody {
 		RateLimit:          &cdn77.RateLimit{},
 		SecureToken:        &cdn77.SecureToken{Type: cdn77.SecureTokenTypeNone},
 		Ssl:                &cdn77.CdnSsl{Type: cdn77.InstantSsl},
-		Waf:                &cdn77.Waf{},
 	}
 }
 
