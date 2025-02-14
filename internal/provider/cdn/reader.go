@@ -126,7 +126,6 @@ func (r *Reader) Process(ctx context.Context, model Model, cdn *cdn77.Cdn, diags
 			Type:  types.StringValue(string(cdn.Ssl.Type)),
 			SslId: types.StringPointerValue(cdn.Ssl.SslId),
 		},
-		WafEnabled: types.BoolValue(cdn.Waf.Enabled),
 	}
 }
 

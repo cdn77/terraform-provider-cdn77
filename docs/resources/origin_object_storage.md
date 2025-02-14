@@ -21,12 +21,10 @@ locals {
 }
 
 resource "cdn77_origin_object_storage" "example" {
-  label             = "Assets bucket for example.com"
-  bucket_name       = "examplecom-static-assets"
-  acl               = "private"
-  cluster_id        = local.eu_cluster_id
-  access_key_id     = "I17DXFE00GNJZVQUTQPW"
-  access_key_secret = "7UG7WbcIz4VhZnVxV4XQcDR2X0APApuvthyATf2v"
+  label       = "Assets bucket for example.com"
+  bucket_name = "examplecom-static-assets"
+  acl         = "private"
+  cluster_id  = local.eu_cluster_id
 }
 ```
 
@@ -46,8 +44,6 @@ resource "cdn77_origin_object_storage" "example" {
 
 ### Read-Only
 
-- `access_key_id` (String) Access key to your Object Storage bucket
-- `access_key_secret` (String, Sensitive) Access secret to your Object Storage bucket
 - `id` (String) Origin ID (UUID)
 - `url` (String) Absolute URL of this resource. Alternative to the attribute "url_parts".
 - `url_parts` (Attributes) Set of attributes describing the resource URL. Alternative to the attribute "url". (see [below for nested schema](#nestedatt--url_parts))
@@ -80,15 +76,13 @@ Read-Only:
 Import is supported using the following syntax:
 
 ```shell
-$ terraform import cdn77_origin_object_storage.example <id>,<acl>,<cluster_id>,<access_key_id>,<access_key_secret>
+$ terraform import cdn77_origin_object_storage.example <id>,<acl>,<cluster_id>
 
 # <id> must be the ID (UUID) of the Object Storage Origin
 # <acl> must be ACL type (one of: "authenticated-read", "private", "public-read", "public-read-write")
 # <cluster_id> must be an ID (UUID) of the Object Storage cluster
-# <access_key_id> must be the ID of the access key that was returned when creating the Object Storage Origin
-# <access_key_secret> must be the secret of the access key that was returned when creating the Object Storage Origin
 
 # Example:
 $ terraform import cdn77_origin_object_storage.example b2d6a7df-18df-4931-8c78-3842bc6e12f0,private,\
-842b5641-b641-4723-ac81-f8cc286e288f,I17DXFE00GNJZVQUTQPW,7UG7WbcIz4VhZnVxV4XQcDR2X0APApuvthyATf2v
+842b5641-b641-4723-ac81-f8cc286e288f
 ```

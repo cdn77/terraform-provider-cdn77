@@ -71,7 +71,7 @@ func MustAddSslWithCleanup(t *testing.T, client cdn77.ClientWithResponsesInterfa
 	}
 
 	sslRequest := cdn77.SslSniAddJSONRequestBody{Certificate: certAndKey[0], PrivateKey: certAndKey[1]}
-	sslResponse, err := client.SslSniAddWithResponse(context.Background(), sslRequest)
+	sslResponse, err := client.SslSniAddWithResponse(t.Context(), sslRequest)
 	AssertResponseOk(t, "Failed to add SSL: %s", sslResponse, err)
 
 	sslId := sslResponse.JSON201.Id

@@ -6,10 +6,8 @@ locals {
 }
 
 resource "cdn77_origin_object_storage" "example" {
-  label             = "Assets bucket for example.com"
-  bucket_name       = "examplecom-static-assets"
-  acl               = "private"
-  cluster_id        = local.eu_cluster_id
-  access_key_id     = "I17DXFE00GNJZVQUTQPW"
-  access_key_secret = "7UG7WbcIz4VhZnVxV4XQcDR2X0APApuvthyATf2v"
+  label       = "Assets bucket for example.com"
+  bucket_name = "examplecom-static-assets"
+  acl         = "private"
+  cluster_id  = local.eu_cluster_id
 }

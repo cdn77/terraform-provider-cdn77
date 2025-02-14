@@ -76,7 +76,6 @@ func TestAccCdnResource(t *testing.T) {
 				attrEq("rate_limit_enabled", "false"),
 				attrEq("secure_token.type", string(cdn77.SecureTokenTypeNone)),
 				attrEq("ssl.type", string(cdn77.InstantSsl)),
-				attrEq("waf_enabled", "false"),
 
 				resource.TestCheckNoResourceAttr(rsc, "stream"),
 				resource.TestCheckNoResourceAttr(rsc, "cache.max_age_404"),
@@ -157,7 +156,6 @@ func TestAccCdnResource(t *testing.T) {
 				attrEq("secure_token.token", "abcd1234"),
 				attrEq("secure_token.type", string(cdn77.SecureTokenTypePath)),
 				attrEq("ssl.type", string(cdn77.InstantSsl)),
-				attrEq("waf_enabled", "false"),
 
 				resource.TestCheckNoResourceAttr(rsc, "stream"),
 				resource.TestCheckNoResourceAttr(rsc, "geo_protection.countries"),
@@ -265,7 +263,6 @@ func TestAccCdnResource(t *testing.T) {
 						type = "SNI"
 						ssl_id = "{sslId}"
 					}
-					waf_enabled = true
 				}`,
 				"sslId", sslId,
 			),
@@ -315,7 +312,6 @@ func TestAccCdnResource(t *testing.T) {
 				attrEq("secure_token.type", string(cdn77.SecureTokenTypePath)),
 				attrEq("ssl.ssl_id", sslId),
 				attrEq("ssl.type", string(cdn77.SNI)),
-				attrEq("waf_enabled", "true"),
 
 				resource.TestCheckNoResourceAttr(rsc, "stream"),
 
@@ -409,7 +405,6 @@ func TestAccCdnResource(t *testing.T) {
 						acctest.EqualField("secure_token.token", *c.SecureToken.Token, "abcd1234"),
 						acctest.EqualField("ssl.type", c.Ssl.Type, cdn77.SNI),
 						acctest.EqualField("ssl.ssl_id", *c.Ssl.SslId, sslId),
-						acctest.EqualField("waf_enabled", c.Waf.Enabled, true),
 					)
 				}),
 			),
@@ -446,7 +441,6 @@ func TestAccCdnResource(t *testing.T) {
 				attrEq("rate_limit_enabled", "false"),
 				attrEq("secure_token.type", string(cdn77.SecureTokenTypeNone)),
 				attrEq("ssl.type", string(cdn77.InstantSsl)),
-				attrEq("waf_enabled", "false"),
 
 				resource.TestCheckNoResourceAttr(rsc, "stream"),
 				resource.TestCheckNoResourceAttr(rsc, "cache.max_age_404"),
@@ -500,7 +494,7 @@ func TestAccCdnDataSource_OnlyRequiredFields(t *testing.T) {
 		Scheme: "https",
 		Host:   "my-totally-random-custom-host.com",
 	}
-	originResponse, err := client.OriginCreateUrlWithResponse(context.Background(), originRequest)
+	originResponse, err := client.OriginCreateUrlWithResponse(t.Context(), originRequest)
 	acctest.AssertResponseOk(t, "Failed to create Origin: %s", originResponse, err)
 
 	originId := originResponse.JSON201.Id
@@ -512,7 +506,7 @@ func TestAccCdnDataSource_OnlyRequiredFields(t *testing.T) {
 	const cdnLabel = "some cdn"
 
 	cdnRequest := cdn77.CdnAddJSONRequestBody{Label: cdnLabel, OriginId: originId}
-	cdnResponse, err := client.CdnAddWithResponse(context.Background(), cdnRequest)
+	cdnResponse, err := client.CdnAddWithResponse(t.Context(), cdnRequest)
 	acctest.AssertResponseOk(t, "Failed to create CDN: %s", cdnResponse, err)
 
 	cdnId := cdnResponse.JSON201.Id
@@ -561,7 +555,6 @@ func TestAccCdnDataSource_OnlyRequiredFields(t *testing.T) {
 				attrEq("rate_limit_enabled", "false"),
 				attrEq("secure_token.type", string(cdn77.SecureTokenTypeNone)),
 				attrEq("ssl.type", string(cdn77.InstantSsl)),
-				attrEq("waf_enabled", "false"),
 
 				resource.TestCheckNoResourceAttr(rsc, "stream"),
 				resource.TestCheckNoResourceAttr(rsc, "cache.max_age_404"),
@@ -587,7 +580,7 @@ func TestAccCdnDataSource_AllFields(t *testing.T) {
 		Scheme: "https",
 		Host:   "my-totally-random-custom-host.com",
 	}
-	originResponse, err := client.OriginCreateUrlWithResponse(context.Background(), originRequest)
+	originResponse, err := client.OriginCreateUrlWithResponse(t.Context(), originRequest)
 	acctest.AssertResponseOk(t, "Failed to create Origin: %s", originResponse, err)
 
 	originId := originResponse.JSON201.Id
@@ -608,7 +601,7 @@ func TestAccCdnDataSource_AllFields(t *testing.T) {
 		Cnames:   util.Pointer(cdnCnames),
 		Note:     nullable.NewNullableWithValue(cdnNote),
 	}
-	cdnAddResponse, err := client.CdnAddWithResponse(context.Background(), cdnAddRequest)
+	cdnAddResponse, err := client.CdnAddWithResponse(t.Context(), cdnAddRequest)
 	acctest.AssertResponseOk(t, "Failed to create CDN: %s", cdnAddResponse, err)
 
 	cdnId := cdnAddResponse.JSON201.Id
@@ -655,9 +648,8 @@ func TestAccCdnDataSource_AllFields(t *testing.T) {
 		RateLimit:   &cdn77.RateLimit{Enabled: true},
 		SecureToken: &cdn77.SecureToken{Token: util.Pointer("abcd1234"), Type: cdn77.SecureTokenTypePath},
 		Ssl:         &cdn77.CdnSsl{SslId: util.Pointer(sslId), Type: cdn77.SNI},
-		Waf:         &cdn77.Waf{Enabled: true},
 	}
-	cdnEditResponse, err := client.CdnEditWithResponse(context.Background(), cdnId, cdnEditRequest)
+	cdnEditResponse, err := client.CdnEditWithResponse(t.Context(), cdnId, cdnEditRequest)
 	acctest.AssertResponseOk(t, "Failed to edit CDN: %s", cdnEditResponse, err)
 
 	attrEq := func(key, value string) resource.TestCheckFunc {
@@ -709,7 +701,6 @@ func TestAccCdnDataSource_AllFields(t *testing.T) {
 			attrEq("secure_token.type", string(cdn77.SecureTokenTypePath)),
 			attrEq("ssl.ssl_id", sslId),
 			attrEq("ssl.type", string(cdn77.SNI)),
-			attrEq("waf_enabled", "true"),
 
 			resource.TestCheckNoResourceAttr(rsc, "stream"),
 		),
@@ -786,7 +777,6 @@ func checkCdnDefaults(
 			acctest.EqualField("https_redirect.code", c.HttpsRedirect.Code, nil),
 
 			acctest.EqualField("mp4_pseudo_streaming_enabled", *c.Mp4PseudoStreaming.Enabled, false),
-			acctest.EqualField("waf_enabled", c.Waf.Enabled, false),
 			acctest.EqualField("ssl.type", c.Ssl.Type, cdn77.InstantSsl),
 			acctest.EqualField("ssl.ssl_id", c.Ssl.SslId, nil),
 			acctest.EqualField("hotlink_protection.code", c.HotlinkProtection.Type, cdn77.Disabled),
