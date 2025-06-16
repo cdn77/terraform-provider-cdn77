@@ -58,9 +58,7 @@ func (r *ObjectStorageReader) Process(
 				SizeBytes: util.IntPointerToInt64Value(detail.Usage.SizeBytes),
 			},
 		},
-		Acl:             model.Acl,
-		ClusterId:       model.ClusterId,
-		AccessKeyId:     model.AccessKeyId,
-		AccessKeySecret: model.AccessKeySecret,
+		Acl:       model.Acl,
+		ClusterId: model.ClusterId,
 	}
 }

@@ -19,10 +19,8 @@ import (
 type ObjectStorageModel struct {
 	ObjectStorageBaseModel
 
-	Acl             types.String `tfsdk:"acl"`
-	ClusterId       types.String `tfsdk:"cluster_id"`
-	AccessKeyId     types.String `tfsdk:"access_key_id"`
-	AccessKeySecret types.String `tfsdk:"access_key_secret"`
+	Acl       types.String `tfsdk:"acl"`
+	ClusterId types.String `tfsdk:"cluster_id"`
 }
 
 type ObjectStorageBaseModel struct {
@@ -52,17 +50,6 @@ func CreateObjectStorageResourceSchema() schema.Schema {
 		Description:   "ID of the Object Storage storage cluster",
 		Required:      true,
 		PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()},
-	}
-	s.Attributes["access_key_id"] = schema.StringAttribute{
-		Description:   "Access key to your Object Storage bucket",
-		Computed:      true,
-		PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
-	}
-	s.Attributes["access_key_secret"] = schema.StringAttribute{
-		Description:   "Access secret to your Object Storage bucket",
-		Computed:      true,
-		Sensitive:     true,
-		PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 	}
 
 	return s

@@ -25,8 +25,6 @@ type DeprecatedOriginModel struct {
 	AwsRegion          types.String `tfsdk:"aws_region"`
 	Acl                types.String `tfsdk:"acl"`
 	ClusterId          types.String `tfsdk:"cluster_id"`
-	AccessKeyId        types.String `tfsdk:"access_key_id"`
-	AccessKeySecret    types.String `tfsdk:"access_key_secret"`
 	BucketName         types.String `tfsdk:"bucket_name"`
 	Scheme             types.String `tfsdk:"scheme"`
 	Host               types.String `tfsdk:"host"`
@@ -97,17 +95,6 @@ func CreateDeprecatedOriginResourceSchema() schema.Schema {
 					),
 				},
 				PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()},
-			},
-			"access_key_id": schema.StringAttribute{
-				Description:   "Access key to your Object Storage bucket",
-				Computed:      true,
-				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
-			},
-			"access_key_secret": schema.StringAttribute{
-				Description:   "Access secret to your Object Storage bucket",
-				Computed:      true,
-				Sensitive:     true,
-				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 			"scheme": schema.StringAttribute{
 				Description: "Scheme of the Origin",

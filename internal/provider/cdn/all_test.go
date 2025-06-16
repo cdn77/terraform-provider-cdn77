@@ -1,7 +1,6 @@
 package cdn_test
 
 import (
-	"context"
 	"fmt"
 	"sort"
 	"testing"
@@ -24,7 +23,7 @@ func TestAccCdnAllDataSource(t *testing.T) {
 		Scheme: "https",
 		Host:   "my-totally-random-custom-host.com",
 	}
-	originResponse, err := client.OriginCreateUrlWithResponse(context.Background(), originRequest)
+	originResponse, err := client.OriginCreateUrlWithResponse(t.Context(), originRequest)
 	acctest.AssertResponseOk(t, "Failed to create Origin: %s", originResponse, err)
 
 	originId := originResponse.JSON201.Id
@@ -42,7 +41,7 @@ func TestAccCdnAllDataSource(t *testing.T) {
 		Cnames:   util.Pointer([]string{"my.cdn.cz", "another.cdn.com"}),
 		Note:     nullable.NewNullableWithValue(cdn1Note),
 	}
-	cdn1Response, err := client.CdnAddWithResponse(context.Background(), cdn1Request)
+	cdn1Response, err := client.CdnAddWithResponse(t.Context(), cdn1Request)
 	acctest.AssertResponseOk(t, "Failed to create CDN: %s", cdn1Response, err)
 
 	cdn1Id := cdn1Response.JSON201.Id
@@ -56,7 +55,7 @@ func TestAccCdnAllDataSource(t *testing.T) {
 	const cdn2Label = "another cdn"
 
 	cdn2Request := cdn77.CdnAddJSONRequestBody{Label: cdn2Label, OriginId: originId}
-	cdn2Response, err := client.CdnAddWithResponse(context.Background(), cdn2Request)
+	cdn2Response, err := client.CdnAddWithResponse(t.Context(), cdn2Request)
 	acctest.AssertResponseOk(t, "Failed to create CDN: %s", cdn2Response, err)
 
 	cdn2Id := cdn2Response.JSON201.Id
@@ -106,7 +105,6 @@ func TestAccCdnAllDataSource(t *testing.T) {
 				attrEq(i, "rate_limit_enabled", "false"),
 				attrEq(i, "secure_token.type", string(cdn77.SecureTokenTypeNone)),
 				attrEq(i, "ssl.type", string(cdn77.InstantSsl)),
-				attrEq(i, "waf_enabled", "false"),
 
 				resource.TestCheckNoResourceAttr(rsc, key(i, "stream")),
 				resource.TestCheckNoResourceAttr(rsc, key(i, "cache.max_age_404")),
@@ -117,6 +115,7 @@ func TestAccCdnAllDataSource(t *testing.T) {
 				resource.TestCheckNoResourceAttr(rsc, key(i, "query_string.parameters")),
 				resource.TestCheckNoResourceAttr(rsc, key(i, "secure_token.token")),
 				resource.TestCheckNoResourceAttr(rsc, key(i, "ssl.ssl_id")),
+				resource.TestCheckNoResourceAttr(rsc, key(i, "waf_enabled")),
 			}
 		}},
 		{id: cdn2Id, factory: func(i int) []resource.TestCheckFunc {
@@ -145,7 +144,6 @@ func TestAccCdnAllDataSource(t *testing.T) {
 				attrEq(i, "rate_limit_enabled", "false"),
 				attrEq(i, "secure_token.type", string(cdn77.SecureTokenTypeNone)),
 				attrEq(i, "ssl.type", string(cdn77.InstantSsl)),
-				attrEq(i, "waf_enabled", "false"),
 
 				resource.TestCheckNoResourceAttr(rsc, key(i, "stream")),
 				resource.TestCheckNoResourceAttr(rsc, key(i, "cache.max_age_404")),

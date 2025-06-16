@@ -30,7 +30,7 @@ func TestAccOrigin_ObjectStorageResource(t *testing.T) {
 	acctest.Run(t, acctest.CheckOriginDestroyed(client, origin.TypeObjectStorage),
 		resource.TestStep{
 			Config: acctest.Config(objectStoragesDataSourceConfig+`resource "cdn77_origin_object_storage" "os" {
-					label = "some label"
+					label = "{bucketName}"
 					acl = "private"
 					cluster_id = local.eu_cluster_id
 					bucket_name = "{bucketName}"
@@ -38,7 +38,7 @@ func TestAccOrigin_ObjectStorageResource(t *testing.T) {
 			ConfigPlanChecks: acctest.ConfigPlanChecks(rsc, plancheck.ResourceActionCreate),
 			Check: resource.ComposeAggregateTestCheckFunc(
 				acctest.CheckAndAssignAttr(rsc, "id", &originId),
-				resource.TestCheckResourceAttr(rsc, "label", "some label"),
+				resource.TestCheckResourceAttr(rsc, "label", bucketName),
 				resource.TestCheckResourceAttr(rsc, "url", "https://eu-1.cdn77-storage.com:443"),
 				resource.TestCheckResourceAttr(rsc, "url_parts.scheme", "https"),
 				resource.TestCheckResourceAttr(rsc, "url_parts.host", "eu-1.cdn77-storage.com"),
@@ -46,8 +46,6 @@ func TestAccOrigin_ObjectStorageResource(t *testing.T) {
 				resource.TestCheckResourceAttr(rsc, "bucket_name", bucketName),
 				resource.TestCheckResourceAttr(rsc, "acl", "private"),
 				acctest.CheckAndAssignAttr(rsc, "cluster_id", &clusterId),
-				resource.TestCheckResourceAttrSet(rsc, "access_key_id"),
-				resource.TestCheckResourceAttrSet(rsc, "access_key_secret"),
 				resource.TestCheckResourceAttr(rsc, "usage.files", "0"),
 				resource.TestCheckResourceAttr(rsc, "usage.size_bytes", "0"),
 				resource.TestCheckNoResourceAttr(rsc, "note"),
@@ -55,7 +53,7 @@ func TestAccOrigin_ObjectStorageResource(t *testing.T) {
 				checkObjectStorage(client, &originId, func(o *cdn77.ObjectStorageOriginDetail) error {
 					return errors.Join(
 						acctest.EqualField("type", o.Type, origin.TypeObjectStorage),
-						acctest.EqualField("label", o.Label, "some label"),
+						acctest.EqualField("label", o.Label, bucketName),
 						acctest.NullField("note", o.Note),
 						acctest.EqualField("scheme", o.Scheme, "https"),
 						acctest.EqualField("host", o.Host, "eu-1.cdn77-storage.com"),
@@ -67,7 +65,7 @@ func TestAccOrigin_ObjectStorageResource(t *testing.T) {
 		},
 		resource.TestStep{
 			Config: acctest.Config(objectStoragesDataSourceConfig+`resource "cdn77_origin_object_storage" "os" {
-					label = "another label"
+					label = "{bucketName}"
 					note = "some note"
 					acl = "private"
 					cluster_id = local.eu_cluster_id
@@ -76,7 +74,7 @@ func TestAccOrigin_ObjectStorageResource(t *testing.T) {
 			ConfigPlanChecks: acctest.ConfigPlanChecks(rsc, plancheck.ResourceActionUpdate),
 			Check: resource.ComposeAggregateTestCheckFunc(
 				acctest.CheckAttr(rsc, "id", &originId),
-				resource.TestCheckResourceAttr(rsc, "label", "another label"),
+				resource.TestCheckResourceAttr(rsc, "label", bucketName),
 				resource.TestCheckResourceAttr(rsc, "note", "some note"),
 				resource.TestCheckResourceAttr(rsc, "url", "https://eu-1.cdn77-storage.com:443"),
 				resource.TestCheckResourceAttr(rsc, "url_parts.scheme", "https"),
@@ -85,15 +83,13 @@ func TestAccOrigin_ObjectStorageResource(t *testing.T) {
 				resource.TestCheckResourceAttr(rsc, "bucket_name", bucketName),
 				resource.TestCheckResourceAttr(rsc, "acl", "private"),
 				acctest.CheckAttr(rsc, "cluster_id", &clusterId),
-				resource.TestCheckResourceAttrSet(rsc, "access_key_id"),
-				resource.TestCheckResourceAttrSet(rsc, "access_key_secret"),
 				resource.TestCheckResourceAttr(rsc, "usage.files", "0"),
 				resource.TestCheckResourceAttr(rsc, "usage.size_bytes", "0"),
 				resource.TestCheckNoResourceAttr(rsc, "url_parts.base_path"),
 				checkObjectStorage(client, &originId, func(o *cdn77.ObjectStorageOriginDetail) error {
 					return errors.Join(
 						acctest.EqualField("type", o.Type, origin.TypeObjectStorage),
-						acctest.EqualField("label", o.Label, "another label"),
+						acctest.EqualField("label", o.Label, bucketName),
 						acctest.NullFieldEqual("note", o.Note, "some note"),
 						acctest.EqualField("scheme", o.Scheme, "https"),
 						acctest.EqualField("host", o.Host, "eu-1.cdn77-storage.com"),
@@ -105,7 +101,7 @@ func TestAccOrigin_ObjectStorageResource(t *testing.T) {
 		},
 		resource.TestStep{
 			Config: acctest.Config(objectStoragesDataSourceConfig+`resource "cdn77_origin_object_storage" "os" {
-					label = "another label"
+					label = "{bucketName}"
 					note = "some note"
 					acl = "authenticated-read"
 					cluster_id = local.eu_cluster_id
@@ -114,7 +110,7 @@ func TestAccOrigin_ObjectStorageResource(t *testing.T) {
 			ConfigPlanChecks: acctest.ConfigPlanChecks(rsc, plancheck.ResourceActionDestroyBeforeCreate),
 			Check: resource.ComposeAggregateTestCheckFunc(
 				acctest.CheckAndReassignAttr(rsc, "id", &originId),
-				resource.TestCheckResourceAttr(rsc, "label", "another label"),
+				resource.TestCheckResourceAttr(rsc, "label", bucketName),
 				resource.TestCheckResourceAttr(rsc, "note", "some note"),
 				resource.TestCheckResourceAttr(rsc, "url", "https://eu-1.cdn77-storage.com:443"),
 				resource.TestCheckResourceAttr(rsc, "url_parts.scheme", "https"),
@@ -123,15 +119,13 @@ func TestAccOrigin_ObjectStorageResource(t *testing.T) {
 				resource.TestCheckResourceAttr(rsc, "bucket_name", bucketName),
 				resource.TestCheckResourceAttr(rsc, "acl", "authenticated-read"),
 				acctest.CheckAndAssignAttr(rsc, "cluster_id", &clusterId),
-				resource.TestCheckResourceAttrSet(rsc, "access_key_id"),
-				resource.TestCheckResourceAttrSet(rsc, "access_key_secret"),
 				resource.TestCheckResourceAttr(rsc, "usage.files", "0"),
 				resource.TestCheckResourceAttr(rsc, "usage.size_bytes", "0"),
 				resource.TestCheckNoResourceAttr(rsc, "url_parts.base_path"),
 				checkObjectStorage(client, &originId, func(o *cdn77.ObjectStorageOriginDetail) error {
 					return errors.Join(
 						acctest.EqualField("type", o.Type, origin.TypeObjectStorage),
-						acctest.EqualField("label", o.Label, "another label"),
+						acctest.EqualField("label", o.Label, bucketName),
 						acctest.NullFieldEqual("note", o.Note, "some note"),
 						acctest.EqualField("scheme", o.Scheme, "https"),
 						acctest.EqualField("host", o.Host, "eu-1.cdn77-storage.com"),
@@ -143,7 +137,7 @@ func TestAccOrigin_ObjectStorageResource(t *testing.T) {
 		},
 		resource.TestStep{
 			Config: acctest.Config(objectStoragesDataSourceConfig+`resource "cdn77_origin_object_storage" "os" {
-					label = "another label"
+					label = "{bucketName}"
 					note = "some note"
 					acl = "authenticated-read"
 					cluster_id = local.us_cluster_id
@@ -152,7 +146,7 @@ func TestAccOrigin_ObjectStorageResource(t *testing.T) {
 			ConfigPlanChecks: acctest.ConfigPlanChecks(rsc, plancheck.ResourceActionDestroyBeforeCreate),
 			Check: resource.ComposeAggregateTestCheckFunc(
 				acctest.CheckAndReassignAttr(rsc, "id", &originId),
-				resource.TestCheckResourceAttr(rsc, "label", "another label"),
+				resource.TestCheckResourceAttr(rsc, "label", bucketName),
 				resource.TestCheckResourceAttr(rsc, "note", "some note"),
 				resource.TestCheckResourceAttr(rsc, "url", "https://us-1.cdn77-storage.com:443"),
 				resource.TestCheckResourceAttr(rsc, "url_parts.scheme", "https"),
@@ -161,15 +155,13 @@ func TestAccOrigin_ObjectStorageResource(t *testing.T) {
 				resource.TestCheckResourceAttr(rsc, "bucket_name", bucketName),
 				resource.TestCheckResourceAttr(rsc, "acl", "authenticated-read"),
 				acctest.CheckAndReassignAttr(rsc, "cluster_id", &clusterId),
-				resource.TestCheckResourceAttrSet(rsc, "access_key_id"),
-				resource.TestCheckResourceAttrSet(rsc, "access_key_secret"),
 				resource.TestCheckResourceAttr(rsc, "usage.files", "0"),
 				resource.TestCheckResourceAttr(rsc, "usage.size_bytes", "0"),
 				resource.TestCheckNoResourceAttr(rsc, "url_parts.base_path"),
 				checkObjectStorage(client, &originId, func(o *cdn77.ObjectStorageOriginDetail) error {
 					return errors.Join(
 						acctest.EqualField("type", o.Type, origin.TypeObjectStorage),
-						acctest.EqualField("label", o.Label, "another label"),
+						acctest.EqualField("label", o.Label, bucketName),
 						acctest.NullFieldEqual("note", o.Note, "some note"),
 						acctest.EqualField("scheme", o.Scheme, "https"),
 						acctest.EqualField("host", o.Host, "us-1.cdn77-storage.com"),
@@ -181,7 +173,7 @@ func TestAccOrigin_ObjectStorageResource(t *testing.T) {
 		},
 		resource.TestStep{
 			Config: acctest.Config(objectStoragesDataSourceConfig+`resource "cdn77_origin_object_storage" "os" {
-					label = "another label"
+					label = "{bucketName}"
 					note = "some note"
 					acl = "authenticated-read"
 					cluster_id = local.us_cluster_id
@@ -190,7 +182,7 @@ func TestAccOrigin_ObjectStorageResource(t *testing.T) {
 			ConfigPlanChecks: acctest.ConfigPlanChecks(rsc, plancheck.ResourceActionDestroyBeforeCreate),
 			Check: resource.ComposeAggregateTestCheckFunc(
 				acctest.CheckAndReassignAttr(rsc, "id", &originId),
-				resource.TestCheckResourceAttr(rsc, "label", "another label"),
+				resource.TestCheckResourceAttr(rsc, "label", anotherBucketName),
 				resource.TestCheckResourceAttr(rsc, "note", "some note"),
 				resource.TestCheckResourceAttr(rsc, "url", "https://us-1.cdn77-storage.com:443"),
 				resource.TestCheckResourceAttr(rsc, "url_parts.scheme", "https"),
@@ -199,15 +191,13 @@ func TestAccOrigin_ObjectStorageResource(t *testing.T) {
 				resource.TestCheckResourceAttr(rsc, "bucket_name", anotherBucketName),
 				resource.TestCheckResourceAttr(rsc, "acl", "authenticated-read"),
 				acctest.CheckAttr(rsc, "cluster_id", &clusterId),
-				resource.TestCheckResourceAttrSet(rsc, "access_key_id"),
-				resource.TestCheckResourceAttrSet(rsc, "access_key_secret"),
 				resource.TestCheckResourceAttr(rsc, "usage.files", "0"),
 				resource.TestCheckResourceAttr(rsc, "usage.size_bytes", "0"),
 				resource.TestCheckNoResourceAttr(rsc, "url_parts.base_path"),
 				checkObjectStorage(client, &originId, func(o *cdn77.ObjectStorageOriginDetail) error {
 					return errors.Join(
 						acctest.EqualField("type", o.Type, origin.TypeObjectStorage),
-						acctest.EqualField("label", o.Label, "another label"),
+						acctest.EqualField("label", o.Label, anotherBucketName),
 						acctest.NullFieldEqual("note", o.Note, "some note"),
 						acctest.EqualField("scheme", o.Scheme, "https"),
 						acctest.EqualField("host", o.Host, "us-1.cdn77-storage.com"),
@@ -224,12 +214,12 @@ func TestAccOrigin_ObjectStorageResource_Import(t *testing.T) {
 	const rsc = "cdn77_origin_object_storage.os"
 	client := acctest.GetClient(t)
 	bucketName := "my-bucket-" + uuid.New().String()
-	var originId, clusterId, accessKeyId, accessKeySecret string
+	var originId, clusterId string
 
 	acctest.Run(t, acctest.CheckOriginDestroyed(client, origin.TypeObjectStorage),
 		resource.TestStep{
 			Config: acctest.Config(objectStoragesDataSourceConfig+`resource "cdn77_origin_object_storage" "os" {
-					label = "some label"
+					label = "{bucketName}"
 					note = "some note"
 					acl = "private"
 					cluster_id = local.eu_cluster_id
@@ -238,15 +228,13 @@ func TestAccOrigin_ObjectStorageResource_Import(t *testing.T) {
 			Check: resource.ComposeAggregateTestCheckFunc(
 				acctest.CheckAndAssignAttr(rsc, "id", &originId),
 				acctest.CheckAndAssignAttr(rsc, "cluster_id", &clusterId),
-				acctest.CheckAndAssignAttr(rsc, "access_key_id", &accessKeyId),
-				acctest.CheckAndAssignAttr(rsc, "access_key_secret", &accessKeySecret),
 			),
 		},
 		resource.TestStep{
 			ResourceName: rsc,
 			ImportState:  true,
 			ImportStateIdFunc: func(*terraform.State) (string, error) {
-				return fmt.Sprintf("%s,private,%s,%s,%s", originId, clusterId, accessKeyId, accessKeySecret), nil
+				return fmt.Sprintf("%s,private,%s", originId, clusterId), nil
 			},
 			ImportStateVerify: true,
 		},
@@ -256,9 +244,9 @@ func TestAccOrigin_ObjectStorageResource_Import(t *testing.T) {
 func TestAccOrigin_ObjectStorageDataSource_OnlyRequiredFields(t *testing.T) {
 	const nonExistingOriginId = "bcd7b5bb-a044-4611-82e4-3f3b2a3cda13"
 	const rsc = "data.cdn77_origin_object_storage.os"
-	const label = "random origin"
 	client := acctest.GetClient(t)
 	originBucketName := "my-bucket-" + uuid.New().String()
+	label := originBucketName
 	request := cdn77.OriginCreateObjectStorageJSONRequestBody{
 		Acl:        cdn77.AuthenticatedRead,
 		BucketName: originBucketName,
@@ -266,14 +254,14 @@ func TestAccOrigin_ObjectStorageDataSource_OnlyRequiredFields(t *testing.T) {
 		Label:      label,
 	}
 
-	response, err := client.OriginCreateObjectStorageWithResponse(context.Background(), request)
+	response, err := client.OriginCreateObjectStorageWithResponse(t.Context(), request)
 	acctest.AssertResponseOk(t, "Failed to create Origin: %s", response, err)
 
 	originId := response.JSON201.Id
 	scheme := string(response.JSON201.Scheme)
 	host := response.JSON201.Host
 	port := response.JSON201.Port
-	urlModel := shared.NewUrlModel(context.Background(), scheme, host, port, nullable.NewNullNullable[string]())
+	urlModel := shared.NewUrlModel(t.Context(), scheme, host, port, nullable.NewNullNullable[string]())
 	originUrl := urlModel.Url.ValueString()
 
 	t.Cleanup(func() {
@@ -315,10 +303,10 @@ func TestAccOrigin_ObjectStorageDataSource_OnlyRequiredFields(t *testing.T) {
 
 func TestAccOrigin_ObjectStorageDataSource_AllFields(t *testing.T) {
 	const rsc = "data.cdn77_origin_object_storage.os"
-	const label = "random origin"
 	const note = "some note"
 	client := acctest.GetClient(t)
 	originBucketName := "my-bucket-" + uuid.New().String()
+	label := originBucketName
 	request := cdn77.OriginCreateObjectStorageJSONRequestBody{
 		Acl:        cdn77.AuthenticatedRead,
 		BucketName: originBucketName,
@@ -327,14 +315,14 @@ func TestAccOrigin_ObjectStorageDataSource_AllFields(t *testing.T) {
 		Note:       nullable.NewNullableWithValue(note),
 	}
 
-	response, err := client.OriginCreateObjectStorageWithResponse(context.Background(), request)
+	response, err := client.OriginCreateObjectStorageWithResponse(t.Context(), request)
 	acctest.AssertResponseOk(t, "Failed to create Origin: %s", response, err)
 
 	originId := response.JSON201.Id
 	scheme := string(response.JSON201.Scheme)
 	host := response.JSON201.Host
 	port := response.JSON201.Port
-	urlModel := shared.NewUrlModel(context.Background(), scheme, host, port, nullable.NewNullNullable[string]())
+	urlModel := shared.NewUrlModel(t.Context(), scheme, host, port, nullable.NewNullNullable[string]())
 	originUrl := urlModel.Url.ValueString()
 
 	t.Cleanup(func() {

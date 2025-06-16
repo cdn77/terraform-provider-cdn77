@@ -45,7 +45,6 @@ resource "cdn77_cdn" "example" {
 - `secure_token` (Attributes) This feature allows you to serve your content using signed URLs. You can enable your users to download secured content from the CDN with a valid hash. Note: When you check this option, make sure to generate secured links to access your content. (see [below for nested schema](#nestedatt--secure_token))
 - `ssl` (Attributes) (see [below for nested schema](#nestedatt--ssl))
 - `stream` (Attributes) Detail parameters of stream CDN (see [below for nested schema](#nestedatt--stream))
-- `waf_enabled` (Boolean) Protect your website against XSS, SQL injection and more with our SmartWAF. We're using OWASP Core Rule Set (CRS) to protect your data against the most exploited vulnerabilities.
 
 ### Read-Only
 
