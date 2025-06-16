@@ -49,7 +49,6 @@ Read-Only:
 - `ssl` (Attributes) (see [below for nested schema](#nestedatt--cdns--ssl))
 - `stream` (Attributes) Detail parameters of stream CDN (see [below for nested schema](#nestedatt--cdns--stream))
 - `url` (String) URL of the CDN. Automatically generated when the CDN is created. The number is the same as the CDN ID.
-- `waf_enabled` (Boolean) Protect your website against XSS, SQL injection and more with our SmartWAF. We're using OWASP Core Rule Set (CRS) to protect your data against the most exploited vulnerabilities.
 
 <a id="nestedatt--cdns--cache"></a>
 ### Nested Schema for `cdns.cache`

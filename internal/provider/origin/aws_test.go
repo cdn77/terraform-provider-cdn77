@@ -269,7 +269,7 @@ func TestAccOrigin_AwsDataSource_OnlyRequiredFields(t *testing.T) {
 		Host:   host,
 	}
 
-	response, err := client.OriginCreateAwsWithResponse(context.Background(), request)
+	response, err := client.OriginCreateAwsWithResponse(t.Context(), request)
 	acctest.AssertResponseOk(t, "Failed to create Origin: %s", response, err)
 
 	originId := response.JSON201.Id
@@ -327,7 +327,7 @@ func TestAccOrigin_AwsDataSource_AllFields(t *testing.T) {
 		AwsRegion:          nullable.NewNullableWithValue(region),
 	}
 
-	response, err := client.OriginCreateAwsWithResponse(context.Background(), request)
+	response, err := client.OriginCreateAwsWithResponse(t.Context(), request)
 	acctest.AssertResponseOk(t, "Failed to create Origin: %s", response, err)
 
 	originId := response.JSON201.Id

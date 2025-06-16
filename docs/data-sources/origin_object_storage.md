@@ -27,8 +27,6 @@ data "cdn77_origin_object_storage" "example" {
 
 ### Read-Only
 
-- `access_key_id` (String) Access key to your Object Storage bucket
-- `access_key_secret` (String, Sensitive) Access secret to your Object Storage bucket
 - `acl` (String) Object Storage access key ACL
 - `bucket_name` (String) Name of your Object Storage bucket
 - `cluster_id` (String) ID of the Object Storage storage cluster

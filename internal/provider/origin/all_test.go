@@ -1,7 +1,6 @@
 package origin_test
 
 import (
-	"context"
 	"strconv"
 	"testing"
 
@@ -31,7 +30,7 @@ func TestAccOrigin_AllDataSource(t *testing.T) {
 		Host:   urlHost,
 	}
 
-	urlResponse, err := client.OriginCreateUrlWithResponse(context.Background(), urlRequest)
+	urlResponse, err := client.OriginCreateUrlWithResponse(t.Context(), urlRequest)
 	acctest.AssertResponseOk(t, "Failed to create Origin: %s", urlResponse, err)
 
 	urlId := urlResponse.JSON201.Id
@@ -58,7 +57,7 @@ func TestAccOrigin_AllDataSource(t *testing.T) {
 		Scheme:             awsScheme,
 	}
 
-	awsResponse, err := client.OriginCreateAwsWithResponse(context.Background(), awsRequest)
+	awsResponse, err := client.OriginCreateAwsWithResponse(t.Context(), awsRequest)
 	acctest.AssertResponseOk(t, "Failed to create Origin: %s", awsResponse, err)
 
 	awsId := awsResponse.JSON201.Id
@@ -67,9 +66,10 @@ func TestAccOrigin_AllDataSource(t *testing.T) {
 		acctest.MustDeleteOrigin(t, client, origin.TypeAws, awsId)
 	})
 
-	const osLabel = "yet another origin"
-	const osNote = "just a note"
 	osBucketName := "my-bucket-" + uuid.New().String()
+	osLabel := osBucketName
+	const osNote = "just a note"
+
 	osRequest := cdn77.OriginCreateObjectStorageJSONRequestBody{
 		Acl:        cdn77.AuthenticatedRead,
 		BucketName: osBucketName,
@@ -78,14 +78,14 @@ func TestAccOrigin_AllDataSource(t *testing.T) {
 		Note:       nullable.NewNullableWithValue(osNote),
 	}
 
-	osResponse, err := client.OriginCreateObjectStorageWithResponse(context.Background(), osRequest)
+	osResponse, err := client.OriginCreateObjectStorageWithResponse(t.Context(), osRequest)
 	acctest.AssertResponseOk(t, "Failed to create Origin: %s", osResponse, err)
 
 	osId := osResponse.JSON201.Id
 	osScheme := string(osResponse.JSON201.Scheme)
 	osHost := osResponse.JSON201.Host
 	osPort := osResponse.JSON201.Port
-	osUrlModel := shared.NewUrlModel(context.Background(), osScheme, osHost, osPort, nullable.NewNullNullable[string]())
+	osUrlModel := shared.NewUrlModel(t.Context(), osScheme, osHost, osPort, nullable.NewNullNullable[string]())
 	osUrl := osUrlModel.Url.ValueString()
 
 	t.Cleanup(func() {

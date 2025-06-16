@@ -41,7 +41,6 @@ type Model struct {
 	RateLimitEnabled          types.Bool              `tfsdk:"rate_limit_enabled"`
 	SecureToken               *ModelSecureToken       `tfsdk:"secure_token"`
 	Ssl                       *ModelSsl               `tfsdk:"ssl"`
-	WafEnabled                types.Bool              `tfsdk:"waf_enabled"`
 }
 
 type ModelStream struct {
@@ -556,14 +555,6 @@ func CreateResourceSchema() schema.Schema {
 						"ssl_id": types.StringNull(),
 					},
 				)),
-			},
-			"waf_enabled": schema.BoolAttribute{
-				Optional: true,
-				Computed: true,
-				Description: `Protect your website against XSS, SQL injection and more with our SmartWAF. ` +
-					`We're using OWASP Core Rule Set (CRS) to protect your data against the most exploited ` +
-					`vulnerabilities.`,
-				Default: booldefault.StaticBool(false),
 			},
 		},
 	}

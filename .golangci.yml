@@ -37,7 +37,7 @@ linters: # 2022-07-21 modified
     - predeclared
     - revive
     - sqlclosecheck
-    - tenv
+    - usetesting
     - testpackage
     - thelper
     - unconvert

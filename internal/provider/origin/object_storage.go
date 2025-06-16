@@ -59,8 +59,6 @@ func (r *ObjectStorageResource) Create(ctx context.Context, req resource.CreateR
 			detail.Port,
 			nullable.NewNullNullable[string](),
 		)
-		data.AccessKeyId = types.StringPointerValue(detail.AccessKeyId)
-		data.AccessKeySecret = types.StringPointerValue(detail.AccessSecret)
 		data.Usage = &ObjectStorageUsageModel{
 			Files:     util.IntPointerToInt64Value(detail.Usage.FileCount),
 			SizeBytes: util.IntPointerToInt64Value(detail.Usage.SizeBytes),
@@ -123,22 +121,20 @@ func (*ObjectStorageResource) ImportState(
 	resp *resource.ImportStateResponse,
 ) {
 	idParts := strings.Split(req.ID, ",")
-	if len(idParts) != 5 {
+	if len(idParts) != 3 {
 		resp.Diagnostics.AddError(
 			"Invalid Import Identifier",
-			fmt.Sprintf("Expected: <id>,<acl>,<cluster_id>,<access_key_id>,<access_key_secret>\nGot: %q", req.ID),
+			fmt.Sprintf("Expected: <id>,<acl>,<cluster_id>\nGot: %q", req.ID),
 		)
 
 		return
 	}
 
-	id, acl, clusterId, accessKeyId, accessKeySecret := idParts[0], idParts[1], idParts[2], idParts[3], idParts[4]
+	id, acl, clusterId := idParts[0], idParts[1], idParts[2]
 
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), id)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("acl"), acl)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("cluster_id"), clusterId)...)
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("access_key_id"), accessKeyId)...)
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("access_key_secret"), accessKeySecret)...)
 }
 
 func (r *ObjectStorageResource) MoveState(context.Context) []resource.StateMover {
@@ -185,10 +181,8 @@ func (r *ObjectStorageResource) MoveState(context.Context) []resource.StateMover
 						),
 						BucketName: oldModel.BucketName,
 					},
-					Acl:             oldModel.Acl,
-					ClusterId:       oldModel.ClusterId,
-					AccessKeyId:     oldModel.AccessKeyId,
-					AccessKeySecret: oldModel.AccessKeySecret,
+					Acl:       oldModel.Acl,
+					ClusterId: oldModel.ClusterId,
 				}
 
 				diags.Append(resp.TargetState.Set(ctx, model)...)
