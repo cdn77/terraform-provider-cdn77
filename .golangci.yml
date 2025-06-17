@@ -3,7 +3,7 @@ version: "2"
 run:
   modules-download-mode: readonly
 
-linters: # 2022-07-21 modified
+linters:
   enable:
     - asasalint
     - asciicheck
@@ -19,14 +19,14 @@ linters: # 2022-07-21 modified
     - gci
     - gochecknoglobals
     - gochecknoinits
-    - gocognit # probably tune
+    - gocognit
     - goconst
-    - gocritic # probably tune
+    - gocritic
     - godot
     - err113
     - gofumpt
     - gosec
-    #        - ifshort # not yet mature, has some bugs
+    # - ifshort
     - lll
     - makezero
     - misspell
@@ -61,12 +61,12 @@ linters-settings:
     enable-all: true
     disable:
       - shadow
-      - fieldalignment # @todo fix later
+      - fieldalignment
 
   gosec:
-    excludes: [G501, G502, G503, G504, G505] # ignore imports, usages are still reported
+    excludes: [G501, G502, G503, G504, G505]
 
-  revive: # v1.2.3
+  revive:
     ignore-generated-header: true
     confidence: 0.8
     severity: error
@@ -131,35 +131,38 @@ linters-settings:
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0
-  exclude-dirs:
-    - mocks
+  exclude:
+    - path: mocks
   exclude-rules:
-    # ignore unchecked errors, missing Close(), code complexity, constant enforcement, global variables,
-    # line lengths and code duplicity in tests
-    -   path: _test\.go
-        linters: [errcheck, bodyclose, cyclop, gocognit, goconst, gochecknoglobals, lll, dupl]
-    # ignore control flags in tests
-    -   path: _test\.go
-        text: seems to be a control flag, avoid control coupling
-        linters: [revive]
-    # ignore unchecked errors in defer statements
-    -   source: "^\t+defer "
-        linters: [errcheck]
-    # ignore cuddle in tests
-    -   path: _test\.go
-        text: only one cuddle assignment allowed before defer statement
-        linters: [wsl]
-    # ignore expressions after assignment in tests
-    -   path: _test\.go
-        text: only cuddled expressions if assigning variable or using from line above
-        linters: [wsl]
-    # ignore expressions and assignments cuddling in tests
-    -   path: _test\.go
-        text: assignments should only be cuddled with other assignments
-        linters: [wsl]
-    # ignore err113 dynamic errors definition error...not sure how to approach this correctly now
-    -   text: do not define dynamic errors, use wrapped static errors instead
-        linters: [err113]
-
-output:
-  sort-results: true
+    - path: _test\.go
+      linters:
+        - errcheck
+        - bodyclose
+        - cyclop
+        - gocognit
+        - goconst
+        - gochecknoglobals
+        - lll
+        - dupl
+    - path: _test\.go
+      text: seems to be a control flag, avoid control coupling
+      linters:
+        - revive
+    - source: "^\t+defer "
+      linters:
+        - errcheck
+    - path: _test\.go
+      text: only one cuddle assignment allowed before defer statement
+      linters:
+        - wsl
+    - path: _test\.go
+      text: only cuddled expressions if assigning variable or using from line above
+      linters:
+        - wsl
+    - path: _test\.go
+      text: assignments should only be cuddled with other assignments
+      linters:
+        - wsl
+    - text: do not define dynamic errors, use wrapped static errors instead
+      linters:
+        - err113
