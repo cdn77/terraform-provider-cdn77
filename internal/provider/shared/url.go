@@ -174,14 +174,23 @@ func (UrlAndUrlPartsPlanModifier) PlanModifyString(
 	}
 
 	diags := resp.Diagnostics
-	var urlParts *UrlPartsModel
+	var urlPartsObj types.Object
 	partsPath := req.Path.ParentPath().AtName("url_parts")
 
-	if diags.Append(req.Plan.GetAttribute(ctx, partsPath, urlParts)...); diags.HasError() {
+	if diags.Append(req.Plan.GetAttribute(ctx, partsPath, &urlPartsObj)...); diags.HasError() {
 		return
 	}
 
-	resp.PlanValue = urlFromParts(urlParts)
+	if urlPartsObj.IsUnknown() || urlPartsObj.IsNull() {
+		return
+	}
+
+	var urlParts UrlPartsModel
+	if diags.Append(urlPartsObj.As(ctx, &urlParts, basetypes.ObjectAsOptions{})...); diags.HasError() {
+		return
+	}
+
+	resp.PlanValue = urlFromParts(&urlParts)
 }
 
 func (UrlAndUrlPartsPlanModifier) PlanModifyObject(
@@ -220,11 +229,21 @@ func (UrlAndUrlPartsPlanModifier) PlanModifyObject(
 	basePath := util.If(u.Path == "", nullable.NewNullNullable[string](), nullable.NewNullableWithValue[string](u.Path))
 	urlParts := NewUrlPartsModel(u.Scheme, u.Hostname(), port, basePath)
 
-	if diags.Append(req.Plan.SetAttribute(ctx, req.Path, urlParts)...); diags.HasError() {
+	urlPartsTypes := map[string]attr.Type{
+		"scheme":    types.StringType,
+		"host":      types.StringType,
+		"port":      types.Int32Type,
+		"base_path": types.StringType,
+	}
+
+	urlPartsObject, objDiags := types.ObjectValueFrom(ctx, urlPartsTypes, urlParts)
+	if objDiags.HasError() {
+		diags.Append(objDiags...)
+
 		return
 	}
 
-	diags.Append(req.Plan.GetAttribute(ctx, req.Path, &resp.PlanValue)...)
+	resp.PlanValue = urlPartsObject
 }
 
 type UrlStringValidator struct{}
