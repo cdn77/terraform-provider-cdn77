@@ -59,6 +59,8 @@ Optional:
 
 Import is supported using the following syntax:
 
+The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
+
 ```shell
 $ terraform import cdn77_origin_aws.example <id>,<access_key_secret>
 
