@@ -5,7 +5,7 @@ go 1.24.0
 require (
 	github.com/cdn77/cdn77-client-go/v2 v2.0.2
 	github.com/google/uuid v1.6.0
-	github.com/hashicorp/terraform-plugin-docs v0.21.0
+	github.com/hashicorp/terraform-plugin-docs v0.24.0
 	github.com/hashicorp/terraform-plugin-framework v1.16.1
 	github.com/hashicorp/terraform-plugin-framework-validators v0.19.0
 	github.com/hashicorp/terraform-plugin-go v0.29.0
@@ -25,7 +25,7 @@ require (
 	github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect
 	github.com/armon/go-radix v1.0.0 // indirect
 	github.com/bgentry/speakeasy v0.1.0 // indirect
-	github.com/bmatcuk/doublestar/v4 v4.8.1 // indirect
+	github.com/bmatcuk/doublestar/v4 v4.9.1 // indirect
 	github.com/cloudflare/circl v1.6.1 // indirect
 	github.com/dprotaso/go-yit v0.0.0-20250909171706-0a81c39169bc // indirect
 	github.com/fatih/color v1.18.0 // indirect
@@ -98,7 +98,7 @@ require (
 	golang.org/x/text v0.30.0 // indirect
 	golang.org/x/tools v0.38.0 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20251007200510-49b9836ed3ff // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20251022142026-3a174f9686a8 // indirect
 	google.golang.org/grpc v1.76.0 // indirect
 	google.golang.org/protobuf v1.36.10 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
