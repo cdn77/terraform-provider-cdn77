@@ -4,6 +4,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
@@ -23,9 +24,14 @@ type BaseModel struct {
 func CreateResourceSchema() schema.Schema {
 	s := CreateBaseResourceSchema()
 	s.Attributes["private_key"] = schema.StringAttribute{
-		Description: "Private key associated with the certificate",
-		Required:    true,
-		Sensitive:   true,
+		Description: "Private key associated with the certificate. " +
+			"Must not contain leading or trailing whitespace. " +
+			"If loading from a file, use trimspace(file(...)) or chomp(file(...)) to remove extra newlines.",
+		Required:  true,
+		Sensitive: true,
+		Validators: []validator.String{
+			NoLeadingTrailingWhitespace(),
+		},
 	}
 
 	return s
@@ -41,8 +47,13 @@ func CreateBaseResourceSchema() schema.Schema {
 				PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
 			},
 			"certificate": schema.StringAttribute{
-				Description: "SNI certificate",
-				Required:    true,
+				Description: "SNI certificate. " +
+					"Must not contain leading or trailing whitespace. " +
+					"If loading from a file, use trimspace(file(...)) or chomp(file(...)) to remove extra newlines.",
+				Required: true,
+				Validators: []validator.String{
+					NoLeadingTrailingWhitespace(),
+				},
 			},
 			"subjects": schema.SetAttribute{
 				ElementType: types.StringType,
