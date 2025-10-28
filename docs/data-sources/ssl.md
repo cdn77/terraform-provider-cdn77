@@ -27,7 +27,7 @@ data "cdn77_ssl" "example" {
 
 ### Read-Only
 
-- `certificate` (String) SNI certificate
+- `certificate` (String) SNI certificate. Must not contain leading or trailing whitespace. If loading from a file, use trimspace(file(...)) or chomp(file(...)) to remove extra newlines.
 - `expires_at` (String) Date and time of the SNI certificate expiration
-- `private_key` (String, Sensitive) Private key associated with the certificate
+- `private_key` (String, Sensitive) Private key associated with the certificate. Must not contain leading or trailing whitespace. If loading from a file, use trimspace(file(...)) or chomp(file(...)) to remove extra newlines.
 - `subjects` (Set of String) Subjects (domain names) of the certificate
