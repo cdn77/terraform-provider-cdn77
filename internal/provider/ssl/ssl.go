@@ -32,8 +32,8 @@ func (r *Resource) Create(ctx context.Context, req resource.CreateRequest, resp 
 	}
 
 	request := cdn77.SslSniAddJSONRequestBody{
-		Certificate: data.Certificate.ValueString(),
-		PrivateKey:  data.PrivateKey.ValueString(),
+		Certificate: strings.TrimSpace(data.Certificate.ValueString()),
+		PrivateKey:  strings.TrimSpace(data.PrivateKey.ValueString()),
 	}
 
 	const errMessage = "Failed to create SSL"
@@ -63,9 +63,11 @@ func (r *Resource) Update(ctx context.Context, req resource.UpdateRequest, resp 
 		return
 	}
 
+	trimmedKey := strings.TrimSpace(data.PrivateKey.ValueString())
+
 	request := cdn77.SslSniEditJSONRequestBody{
-		Certificate: data.Certificate.ValueString(),
-		PrivateKey:  data.PrivateKey.ValueStringPointer(),
+		Certificate: strings.TrimSpace(data.Certificate.ValueString()),
+		PrivateKey:  &trimmedKey,
 	}
 
 	const errMessage = "Failed to update SSL"

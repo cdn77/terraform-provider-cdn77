@@ -98,6 +98,32 @@ func TestAccSslResource_Import(t *testing.T) {
 	)
 }
 
+func TestAccSslResource_WhitespaceHandling(t *testing.T) {
+	const rsc = "cdn77_ssl.crt"
+	client := acctest.GetClient(t)
+	var sslId string
+
+	certWithWhitespace := "\n  " + testdata.SslCert1 + "  \n"
+	keyWithWhitespace := "\n  " + testdata.SslKey + "  \n"
+
+	acctest.Run(t, checkSslsDestroyed(client),
+		resource.TestStep{
+			Config: acctest.Config(resourceConfig, "cert", certWithWhitespace, "key", keyWithWhitespace),
+			Check: resource.ComposeAggregateTestCheckFunc(
+				acctest.CheckAndAssignAttr(rsc, "id", &sslId),
+				resource.TestCheckResourceAttr(rsc, "certificate", testdata.SslCert1),
+				checkSsl(client, &sslId, func(o *cdn77.Ssl) error {
+					return acctest.EqualField("certificate", o.Certificate, testdata.SslCert1)
+				}),
+			),
+		},
+		resource.TestStep{
+			Config:           acctest.Config(resourceConfig, "cert", certWithWhitespace, "key", keyWithWhitespace),
+			ConfigPlanChecks: acctest.ConfigPlanChecks(rsc, plancheck.ResourceActionNoop),
+		},
+	)
+}
+
 func TestAccSslDataSource(t *testing.T) {
 	const nonExistingSslId = "ae4f471f-029a-4a5c-b9bd-27ea28815de0"
 	client := acctest.GetClient(t)
