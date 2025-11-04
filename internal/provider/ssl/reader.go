@@ -2,6 +2,7 @@ package ssl
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/cdn77/cdn77-client-go/v2"
@@ -36,7 +37,7 @@ func (*Reader) Process(ctx context.Context, model Model, ssl *cdn77.Ssl, diags *
 }
 
 func readSslDetails(ctx context.Context, diags *diag.Diagnostics, model *BaseModel, ssl *cdn77.Ssl) {
-	model.Certificate = types.StringValue(ssl.Certificate)
+	model.Certificate = types.StringValue(strings.TrimSpace(ssl.Certificate))
 	model.Subjects = util.SetValueFrom(ctx, diags, types.StringType, ssl.Cnames)
 	model.ExpiresAt = types.StringValue(ssl.ExpiresAt.Format(time.DateTime))
 }

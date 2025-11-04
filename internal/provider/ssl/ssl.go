@@ -137,8 +137,10 @@ func (*Resource) ImportState(
 		return
 	}
 
+	trimmedKey := strings.TrimSpace(string(privateKey))
+
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), id)...)
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("private_key"), string(privateKey))...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("private_key"), trimmedKey)...)
 }
 
 var _ datasource.DataSourceWithConfigure = &DataSource{}

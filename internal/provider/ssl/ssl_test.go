@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"os"
 	"regexp"
 	"sort"
 	"testing"
@@ -98,6 +99,51 @@ func TestAccSslResource_Import(t *testing.T) {
 	)
 }
 
+func TestAccSslResource_WhitespaceHandling(t *testing.T) {
+	const rsc = "cdn77_ssl.crt"
+	client := acctest.GetClient(t)
+	var sslId string
+
+	certWithWhitespace := "\n  " + testdata.SslCert1 + "  \n"
+	keyWithWhitespace := "\n  " + testdata.SslKey + "  \n"
+
+	acctest.Run(t, checkSslsDestroyed(client),
+		resource.TestStep{
+			Config: acctest.Config(resourceConfig, "cert", certWithWhitespace, "key", keyWithWhitespace),
+			Check: resource.ComposeAggregateTestCheckFunc(
+				acctest.CheckAndAssignAttr(rsc, "id", &sslId),
+				resource.TestCheckResourceAttr(rsc, "certificate", testdata.SslCert1),
+				checkSsl(client, &sslId, func(o *cdn77.Ssl) error {
+					return acctest.EqualField("certificate", o.Certificate, testdata.SslCert1)
+				}),
+			),
+		},
+		resource.TestStep{
+			Config:           acctest.Config(resourceConfig, "cert", certWithWhitespace, "key", keyWithWhitespace),
+			ConfigPlanChecks: acctest.ConfigPlanChecks(rsc, plancheck.ResourceActionNoop),
+		},
+	)
+}
+
+func TestAccSslResource_FileWithoutChomp(t *testing.T) {
+	certFile := createTempFile(t, "\n  "+testdata.SslCert1+"  \n")
+	keyFile := createTempFile(t, "\n  "+testdata.SslKey+"  \n")
+
+	configWithFile := fmt.Sprintf(`
+resource "cdn77_ssl" "crt" {
+ certificate = file("%s")
+ private_key = file("%s")
+}`, certFile, keyFile)
+
+	expectedError := `(?s)Certificate and private key values must not have leading or trailing\s+whitespace`
+	acctest.Run(t, nil,
+		resource.TestStep{
+			Config:      configWithFile,
+			ExpectError: regexp.MustCompile(expectedError),
+		},
+	)
+}
+
 func TestAccSslDataSource(t *testing.T) {
 	const nonExistingSslId = "ae4f471f-029a-4a5c-b9bd-27ea28815de0"
 	client := acctest.GetClient(t)
@@ -161,6 +207,25 @@ func checkSslsDestroyed(client cdn77.ClientWithResponsesInterface) resource.Test
 
 		return nil
 	}
+}
+
+func createTempFile(t *testing.T, content string) string {
+	t.Helper()
+
+	file, err := os.CreateTemp(t.TempDir(), "test-*.pem")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := file.WriteString(content); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := file.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	return file.Name()
 }
 
 const resourceConfig = `

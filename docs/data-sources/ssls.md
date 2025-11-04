@@ -29,7 +29,7 @@ data "cdn77_ssls" "all" {
 
 Read-Only:
 
-- `certificate` (String) SNI certificate
+- `certificate` (String) SNI certificate. Must not contain leading or trailing whitespace. If loading from a file, use trimspace(file(...)) or chomp(file(...)) to remove extra newlines.
 - `expires_at` (String) Date and time of the SNI certificate expiration
 - `id` (String) ID (UUID) of the SSL certificate
 - `subjects` (Set of String) Subjects (domain names) of the certificate

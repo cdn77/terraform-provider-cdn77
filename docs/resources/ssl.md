@@ -24,8 +24,8 @@ resource "cdn77_ssl" "example" {
 
 ### Required
 
-- `certificate` (String) SNI certificate
-- `private_key` (String, Sensitive) Private key associated with the certificate
+- `certificate` (String) SNI certificate. Must not contain leading or trailing whitespace. If loading from a file, use trimspace(file(...)) or chomp(file(...)) to remove extra newlines.
+- `private_key` (String, Sensitive) Private key associated with the certificate. Must not contain leading or trailing whitespace. If loading from a file, use trimspace(file(...)) or chomp(file(...)) to remove extra newlines.
 
 ### Read-Only
 
