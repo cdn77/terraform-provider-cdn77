@@ -287,7 +287,7 @@ func (r *Resource) createEditRequest( //nolint:cyclop
 func (*Resource) createDefaultEditRequest() cdn77.CdnEditJSONRequestBody {
 	return cdn77.CdnEditJSONRequestBody{
 		Cache: &cdn77.Cache{
-			MaxAge:                     util.Pointer(cdn77.MaxAgeN17280),
+			MaxAge:                     util.Pointer(cdn77.N17280),
 			MaxAge404:                  nullable.NewNullNullable[cdn77.MaxAge404](),
 			RequestsWithCookiesEnabled: util.Pointer(true),
 		},

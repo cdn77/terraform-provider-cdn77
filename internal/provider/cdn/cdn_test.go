@@ -57,7 +57,7 @@ func TestAccCdnResource(t *testing.T) {
 				acctest.CheckAttr(rsc, "origin_id", &originId),
 				acctest.CheckAndAssignAttr(rsc, "creation_time", &cdnCreationTime),
 				acctest.CheckAndAssignAttr(rsc, "url", &cdnUrl),
-				attrEq("cache.max_age", fmt.Sprintf("%d", cdn77.MaxAgeN17280)),
+				attrEq("cache.max_age", fmt.Sprintf("%d", cdn77.N17280)),
 				attrEq("cache.requests_with_cookies_enabled", "true"),
 				attrEq("cnames.#", "0"),
 				attrEq("geo_protection.type", string(cdn77.Disabled)),
@@ -129,7 +129,7 @@ func TestAccCdnResource(t *testing.T) {
 				acctest.CheckAttr(rsc, "origin_id", &originId),
 				acctest.CheckAttr(rsc, "creation_time", &cdnCreationTime),
 				acctest.CheckAttr(rsc, "url", &cdnUrl),
-				attrEq("cache.max_age", fmt.Sprintf("%d", cdn77.MaxAgeN60)),
+				attrEq("cache.max_age", fmt.Sprintf("%d", cdn77.N60)),
 				attrEq("cache.max_age_404", fmt.Sprintf("%d", cdn77.MaxAge404N5)),
 				attrEq("cache.requests_with_cookies_enabled", "false"),
 				attrEq("cnames.#", "2"),
@@ -171,7 +171,7 @@ func TestAccCdnResource(t *testing.T) {
 					return errors.Join(
 						acctest.EqualField("label", c.Label, "changed the label"),
 						acctest.NullFieldEqual("origin_id", c.OriginId, originId),
-						acctest.EqualField("cache.max_age", *c.Cache.MaxAge, cdn77.MaxAgeN60),
+						acctest.EqualField("cache.max_age", *c.Cache.MaxAge, cdn77.N60),
 						acctest.NullFieldEqual("cache.max_age_404", c.Cache.MaxAge404, cdn77.MaxAge404N5),
 						acctest.EqualField(
 							"cache.requests_with_cookies_enabled",
@@ -276,7 +276,7 @@ func TestAccCdnResource(t *testing.T) {
 				resource.TestCheckResourceAttrWith(rsc, "creation_time", func(value string) (err error) {
 					return acctest.Equal(value, cdnCreationTime)
 				}),
-				attrEq("cache.max_age", fmt.Sprintf("%d", cdn77.MaxAgeN60)),
+				attrEq("cache.max_age", fmt.Sprintf("%d", cdn77.N60)),
 				attrEq("cache.max_age_404", fmt.Sprintf("%d", cdn77.MaxAge404N5)),
 				attrEq("cache.requests_with_cookies_enabled", "false"),
 				attrEq("cnames.#", "2"),
@@ -324,7 +324,7 @@ func TestAccCdnResource(t *testing.T) {
 					return errors.Join(
 						acctest.EqualField("label", c.Label, "changed the label"),
 						acctest.NullFieldEqual("origin_id", c.OriginId, originId),
-						acctest.EqualField("cache.max_age", *c.Cache.MaxAge, cdn77.MaxAgeN60),
+						acctest.EqualField("cache.max_age", *c.Cache.MaxAge, cdn77.N60),
 						acctest.NullFieldEqual("cache.max_age_404", c.Cache.MaxAge404, cdn77.MaxAge404N5),
 						acctest.EqualField(
 							"cache.requests_with_cookies_enabled",
@@ -422,7 +422,7 @@ func TestAccCdnResource(t *testing.T) {
 				acctest.CheckAttr(rsc, "origin_id", &originId),
 				acctest.CheckAttr(rsc, "creation_time", &cdnCreationTime),
 				acctest.CheckAttr(rsc, "url", &cdnUrl),
-				attrEq("cache.max_age", fmt.Sprintf("%d", cdn77.MaxAgeN17280)),
+				attrEq("cache.max_age", fmt.Sprintf("%d", cdn77.N17280)),
 				attrEq("cache.requests_with_cookies_enabled", "true"),
 				attrEq("cnames.#", "0"),
 				attrEq("geo_protection.type", string(cdn77.Disabled)),
@@ -536,7 +536,7 @@ func TestAccCdnDataSource_OnlyRequiredFields(t *testing.T) {
 				attrEq("origin_id", originId),
 				attrEq("creation_time", cdnCreationTime),
 				attrEq("url", cdnUrl),
-				attrEq("cache.max_age", fmt.Sprintf("%d", cdn77.MaxAgeN17280)),
+				attrEq("cache.max_age", fmt.Sprintf("%d", cdn77.N17280)),
 				attrEq("cache.requests_with_cookies_enabled", "true"),
 				attrEq("cnames.#", "0"),
 				attrEq("geo_protection.type", string(cdn77.Disabled)),
@@ -614,7 +614,7 @@ func TestAccCdnDataSource_AllFields(t *testing.T) {
 
 	cdnEditRequest := cdn77.CdnEditJSONRequestBody{
 		Cache: &cdn77.Cache{
-			MaxAge:                     util.Pointer(cdn77.MaxAgeN60),
+			MaxAge:                     util.Pointer(cdn77.N60),
 			MaxAge404:                  nullable.NewNullableWithValue(cdn77.MaxAge404N5),
 			RequestsWithCookiesEnabled: util.Pointer(false),
 		},
@@ -664,7 +664,7 @@ func TestAccCdnDataSource_AllFields(t *testing.T) {
 			attrEq("origin_id", originId),
 			attrEq("creation_time", cdnCreationTime),
 			attrEq("url", cdnUrl),
-			attrEq("cache.max_age", fmt.Sprintf("%d", cdn77.MaxAgeN60)),
+			attrEq("cache.max_age", fmt.Sprintf("%d", cdn77.N60)),
 			attrEq("cache.max_age_404", fmt.Sprintf("%d", cdn77.MaxAge404N5)),
 			attrEq("cache.requests_with_cookies_enabled", "false"),
 			attrEq("cnames.#", "2"),
@@ -745,7 +745,7 @@ func checkCdnDefaults(
 			acctest.EqualField("label", c.Label, cdnLabel),
 			acctest.NullField("note", c.Note),
 			acctest.EqualField("len(cnames)", len(c.Cnames), 0),
-			acctest.EqualField("cache.max_age", *c.Cache.MaxAge, cdn77.MaxAgeN17280),
+			acctest.EqualField("cache.max_age", *c.Cache.MaxAge, cdn77.N17280),
 			acctest.NullField("cache.max_age_404", c.Cache.MaxAge404),
 			acctest.EqualField(
 				"cache.requests_with_cookies_enabled",

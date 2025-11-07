@@ -79,8 +79,8 @@ func (r *ObjectStorageResource) Update(ctx context.Context, req resource.UpdateR
 	const errMessage = "Failed to update Object Storage Origin"
 
 	request := cdn77.OriginEditObjectStorageJSONRequestBody{
-		Label: data.Label.ValueStringPointer(),
-		Note:  util.StringValueToNullable(data.Note),
+		//Label: data.Label.ValueStringPointer(),
+		Note: util.StringValueToNullable(data.Note),
 	}
 
 	response, err := r.Client.OriginEditObjectStorageWithResponse(ctx, data.Id.ValueString(), request)
