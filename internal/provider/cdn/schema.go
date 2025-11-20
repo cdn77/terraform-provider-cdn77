@@ -21,26 +21,27 @@ import (
 )
 
 type Model struct {
-	Id                        types.Int64             `tfsdk:"id"`
-	Label                     types.String            `tfsdk:"label"`
-	OriginId                  types.String            `tfsdk:"origin_id"`
-	CreationTime              types.String            `tfsdk:"creation_time"`
-	Url                       types.String            `tfsdk:"url"`
-	Stream                    *ModelStream            `tfsdk:"stream"`
-	Cache                     *ModelCache             `tfsdk:"cache"`
-	Cnames                    types.Set               `tfsdk:"cnames"`
-	GeoProtection             *ModelGeoProtection     `tfsdk:"geo_protection"`
-	Headers                   *ModelHeaders           `tfsdk:"headers"`
-	HotlinkProtection         *ModelHotlinkProtection `tfsdk:"hotlink_protection"`
-	HttpsRedirect             *ModelHttpsRedirect     `tfsdk:"https_redirect"`
-	IpProtection              *ModelIpProtection      `tfsdk:"ip_protection"`
-	Mp4PseudoStreamingEnabled types.Bool              `tfsdk:"mp4_pseudo_streaming_enabled"`
-	Note                      types.String            `tfsdk:"note"`
-	OriginHeaders             types.Map               `tfsdk:"origin_headers"`
-	QueryString               *ModelQueryString       `tfsdk:"query_string"`
-	RateLimitEnabled          types.Bool              `tfsdk:"rate_limit_enabled"`
-	SecureToken               *ModelSecureToken       `tfsdk:"secure_token"`
-	Ssl                       *ModelSsl               `tfsdk:"ssl"`
+	Id                        types.Int64               `tfsdk:"id"`
+	Label                     types.String              `tfsdk:"label"`
+	OriginId                  types.String              `tfsdk:"origin_id"`
+	CreationTime              types.String              `tfsdk:"creation_time"`
+	Url                       types.String              `tfsdk:"url"`
+	Stream                    *ModelStream              `tfsdk:"stream"`
+	Cache                     *ModelCache               `tfsdk:"cache"`
+	Cnames                    types.Set                 `tfsdk:"cnames"`
+	GeoProtection             *ModelGeoProtection       `tfsdk:"geo_protection"`
+	Headers                   *ModelHeaders             `tfsdk:"headers"`
+	HotlinkProtection         *ModelHotlinkProtection   `tfsdk:"hotlink_protection"`
+	HttpsRedirect             *ModelHttpsRedirect       `tfsdk:"https_redirect"`
+	IpProtection              *ModelIpProtection        `tfsdk:"ip_protection"`
+	Mp4PseudoStreamingEnabled types.Bool                `tfsdk:"mp4_pseudo_streaming_enabled"`
+	Note                      types.String              `tfsdk:"note"`
+	OriginHeaders             types.Map                 `tfsdk:"origin_headers"`
+	QueryString               *ModelQueryString         `tfsdk:"query_string"`
+	RateLimitEnabled          types.Bool                `tfsdk:"rate_limit_enabled"`
+	SecureToken               *ModelSecureToken         `tfsdk:"secure_token"`
+	Ssl                       *ModelSsl                 `tfsdk:"ssl"`
+	ConditionalFeatures       *ModelConditionalFeatures `tfsdk:"conditional_features"`
 }
 
 type ModelStream struct {
@@ -100,6 +101,11 @@ type ModelSecureToken struct {
 type ModelSsl struct {
 	Type  types.String `tfsdk:"type"`
 	SslId types.String `tfsdk:"ssl_id"`
+}
+
+type ModelConditionalFeatures struct {
+	Configuration types.String `tfsdk:"configuration"`
+	Secrets       types.Map    `tfsdk:"secrets"`
 }
 
 func CreateResourceSchema() schema.Schema {
@@ -162,14 +168,14 @@ func CreateResourceSchema() schema.Schema {
 						Computed:    true,
 						Description: "In minutes",
 						Validators: []validator.Int64{int64validator.OneOf(
-							int64(cdn77.MaxAgeN10), int64(cdn77.MaxAgeN30), int64(cdn77.MaxAgeN60),
-							int64(cdn77.MaxAgeN240), int64(cdn77.MaxAgeN720), int64(cdn77.MaxAgeN1440),
-							int64(cdn77.MaxAgeN2160), int64(cdn77.MaxAgeN2880), int64(cdn77.MaxAgeN4320),
-							int64(cdn77.MaxAgeN5760), int64(cdn77.MaxAgeN7200), int64(cdn77.MaxAgeN8640),
-							int64(cdn77.MaxAgeN10800), int64(cdn77.MaxAgeN11520), int64(cdn77.MaxAgeN12960),
-							int64(cdn77.MaxAgeN14400), int64(cdn77.MaxAgeN15840), int64(cdn77.MaxAgeN17280),
+							int64(cdn77.N10), int64(cdn77.N30), int64(cdn77.N60),
+							int64(cdn77.N240), int64(cdn77.N720), int64(cdn77.N1440),
+							int64(cdn77.N2160), int64(cdn77.N2880), int64(cdn77.N4320),
+							int64(cdn77.N5760), int64(cdn77.N7200), int64(cdn77.N8640),
+							int64(cdn77.N10800), int64(cdn77.N11520), int64(cdn77.N12960),
+							int64(cdn77.N14400), int64(cdn77.N15840), int64(cdn77.N17280),
 						)},
-						Default: int64default.StaticInt64(int64(cdn77.MaxAgeN17280)),
+						Default: int64default.StaticInt64(int64(cdn77.N17280)),
 					},
 					"max_age_404": schema.Int64Attribute{
 						Optional:    true,
@@ -204,7 +210,7 @@ func CreateResourceSchema() schema.Schema {
 						"requests_with_cookies_enabled": basetypes.BoolType{},
 					},
 					map[string]attr.Value{
-						"max_age":                       types.Int64Value(int64(cdn77.MaxAgeN17280)),
+						"max_age":                       types.Int64Value(int64(cdn77.N17280)),
 						"max_age_404":                   types.Int64Null(),
 						"requests_with_cookies_enabled": types.BoolValue(true),
 					},
@@ -555,6 +561,23 @@ func CreateResourceSchema() schema.Schema {
 						"ssl_id": types.StringNull(),
 					},
 				)),
+			},
+			"conditional_features": schema.SingleNestedAttribute{
+				Optional:    true,
+				Description: "Conditional features configuration and secrets.",
+				Attributes: map[string]schema.Attribute{
+					"configuration": schema.StringAttribute{
+						Optional:      true,
+						Description:   "JSON configuration for conditional features.",
+						PlanModifiers: []planmodifier.String{stringplanmodifier.UseStateForUnknown()},
+					},
+					"secrets": schema.MapAttribute{
+						Optional:    true,
+						Computed:    true,
+						Sensitive:   true,
+						ElementType: types.StringType,
+					},
+				},
 			},
 		},
 	}
