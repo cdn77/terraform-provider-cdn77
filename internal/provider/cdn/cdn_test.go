@@ -57,7 +57,7 @@ func TestAccCdnResource(t *testing.T) {
 				acctest.CheckAttr(rsc, "origin_id", &originId),
 				acctest.CheckAndAssignAttr(rsc, "creation_time", &cdnCreationTime),
 				acctest.CheckAndAssignAttr(rsc, "url", &cdnUrl),
-				attrEq("cache.max_age", fmt.Sprintf("%d", cdn77.MaxAgeN17280)),
+				attrEq("cache.max_age", fmt.Sprintf("%d", cdn77.N17280)),
 				attrEq("cache.requests_with_cookies_enabled", "true"),
 				attrEq("cnames.#", "0"),
 				attrEq("geo_protection.type", string(cdn77.Disabled)),
@@ -79,6 +79,7 @@ func TestAccCdnResource(t *testing.T) {
 
 				resource.TestCheckNoResourceAttr(rsc, "stream"),
 				resource.TestCheckNoResourceAttr(rsc, "cache.max_age_404"),
+				resource.TestCheckNoResourceAttr(rsc, "conditional_features"),
 				resource.TestCheckNoResourceAttr(rsc, "geo_protection.countries"),
 				resource.TestCheckNoResourceAttr(rsc, "hotlink_protection.domains"),
 				resource.TestCheckNoResourceAttr(rsc, "https_redirect.code"),
@@ -129,7 +130,7 @@ func TestAccCdnResource(t *testing.T) {
 				acctest.CheckAttr(rsc, "origin_id", &originId),
 				acctest.CheckAttr(rsc, "creation_time", &cdnCreationTime),
 				acctest.CheckAttr(rsc, "url", &cdnUrl),
-				attrEq("cache.max_age", fmt.Sprintf("%d", cdn77.MaxAgeN60)),
+				attrEq("cache.max_age", fmt.Sprintf("%d", cdn77.N60)),
 				attrEq("cache.max_age_404", fmt.Sprintf("%d", cdn77.MaxAge404N5)),
 				attrEq("cache.requests_with_cookies_enabled", "false"),
 				attrEq("cnames.#", "2"),
@@ -171,7 +172,7 @@ func TestAccCdnResource(t *testing.T) {
 					return errors.Join(
 						acctest.EqualField("label", c.Label, "changed the label"),
 						acctest.NullFieldEqual("origin_id", c.OriginId, originId),
-						acctest.EqualField("cache.max_age", *c.Cache.MaxAge, cdn77.MaxAgeN60),
+						acctest.EqualField("cache.max_age", *c.Cache.MaxAge, cdn77.N60),
 						acctest.NullFieldEqual("cache.max_age_404", c.Cache.MaxAge404, cdn77.MaxAge404N5),
 						acctest.EqualField(
 							"cache.requests_with_cookies_enabled",
@@ -276,7 +277,7 @@ func TestAccCdnResource(t *testing.T) {
 				resource.TestCheckResourceAttrWith(rsc, "creation_time", func(value string) (err error) {
 					return acctest.Equal(value, cdnCreationTime)
 				}),
-				attrEq("cache.max_age", fmt.Sprintf("%d", cdn77.MaxAgeN60)),
+				attrEq("cache.max_age", fmt.Sprintf("%d", cdn77.N60)),
 				attrEq("cache.max_age_404", fmt.Sprintf("%d", cdn77.MaxAge404N5)),
 				attrEq("cache.requests_with_cookies_enabled", "false"),
 				attrEq("cnames.#", "2"),
@@ -324,7 +325,7 @@ func TestAccCdnResource(t *testing.T) {
 					return errors.Join(
 						acctest.EqualField("label", c.Label, "changed the label"),
 						acctest.NullFieldEqual("origin_id", c.OriginId, originId),
-						acctest.EqualField("cache.max_age", *c.Cache.MaxAge, cdn77.MaxAgeN60),
+						acctest.EqualField("cache.max_age", *c.Cache.MaxAge, cdn77.N60),
 						acctest.NullFieldEqual("cache.max_age_404", c.Cache.MaxAge404, cdn77.MaxAge404N5),
 						acctest.EqualField(
 							"cache.requests_with_cookies_enabled",
@@ -422,7 +423,7 @@ func TestAccCdnResource(t *testing.T) {
 				acctest.CheckAttr(rsc, "origin_id", &originId),
 				acctest.CheckAttr(rsc, "creation_time", &cdnCreationTime),
 				acctest.CheckAttr(rsc, "url", &cdnUrl),
-				attrEq("cache.max_age", fmt.Sprintf("%d", cdn77.MaxAgeN17280)),
+				attrEq("cache.max_age", fmt.Sprintf("%d", cdn77.N17280)),
 				attrEq("cache.requests_with_cookies_enabled", "true"),
 				attrEq("cnames.#", "0"),
 				attrEq("geo_protection.type", string(cdn77.Disabled)),
@@ -484,6 +485,427 @@ func TestAccCdnResource_Import(t *testing.T) {
 	)
 }
 
+func TestAccCdnResource_ConditionalFeaturesConfiguration(t *testing.T) {
+	const rsc = "cdn77_cdn.lorem"
+	const originRsc = "cdn77_origin_url.url"
+
+	client := acctest.GetClient(t)
+
+	var cdnID string
+	var originID string
+
+	const conditionalFeaturesConfig = `
+resource "cdn77_cdn" "lorem" {
+  label     = "cdn with conditional features"
+  origin_id = cdn77_origin_url.url.id
+
+  conditional_features = {
+    configuration = jsonencode([
+      {
+        if = [
+        "OR",
+          {
+            type   = "path-prefix"
+            prefix = "/test"
+          }
+        ]
+        then = [
+          {
+            name   = "set_var"
+            config = {
+              key   = "origin"
+              value = "east"
+            }
+          }
+        ]
+      }
+    ])
+
+    secrets = {
+      SECRET1 = "abcdefgh11231"
+    }
+  }
+}
+`
+
+	const conditionalFeaturesUpdatedConfig = `
+resource "cdn77_cdn" "lorem" {
+  label     = "cdn with conditional features"
+  origin_id = cdn77_origin_url.url.id
+
+  conditional_features = {
+    configuration = jsonencode([
+      {
+        "if": [
+          "OR",
+          { "type": "path-prefix", "prefix": "/atp" },
+          { "type": "var", "key": "set-cors", "value": "true" }
+        ],
+        "then": [
+          {
+            "name": "response_hdr",
+            "config": {
+              "response_hdr_name": "Access-Control-Allow-Origin",
+              "response_hdr_value": "*"
+            }
+          }
+        ]
+      }
+    ])
+
+    secrets = {
+      SECRET1 = "abcdefgh11231"
+      SECRET2 = "updatedsecret"
+    }
+  }
+}
+`
+
+	acctest.Run(t, checkCdnsAndOriginDestroyed(client),
+		resource.TestStep{
+			Config: OriginResourceConfig + conditionalFeaturesConfig,
+			Check: resource.ComposeAggregateTestCheckFunc(
+				acctest.CheckAndAssignAttr(originRsc, "id", &originID),
+				acctest.CheckAndAssignAttr(rsc, "id", &cdnID),
+
+				resource.TestCheckResourceAttr(rsc, "conditional_features.secrets.%", "1"),
+				resource.TestCheckResourceAttr(rsc, "conditional_features.secrets.SECRET1", "abcdefgh11231"),
+				resource.TestCheckResourceAttrSet(rsc, "conditional_features.configuration"),
+			),
+		},
+		resource.TestStep{
+			Config:           OriginResourceConfig + conditionalFeaturesUpdatedConfig,
+			ConfigPlanChecks: acctest.ConfigPlanChecks(rsc, plancheck.ResourceActionUpdate),
+			Check: resource.ComposeAggregateTestCheckFunc(
+				resource.TestCheckResourceAttr(rsc, "conditional_features.secrets.%", "2"),
+				resource.TestCheckResourceAttr(rsc, "conditional_features.secrets.SECRET1", "abcdefgh11231"),
+				resource.TestCheckResourceAttr(rsc, "conditional_features.secrets.SECRET2", "updatedsecret"),
+				resource.TestCheckResourceAttrSet(rsc, "conditional_features.configuration"),
+			),
+		},
+	)
+}
+
+func TestAccCdnResource_ConditionalFeaturesNestedConfiguration(t *testing.T) {
+	const rsc = "cdn77_cdn.lorem"
+	const originRsc = "cdn77_origin_url.url"
+
+	client := acctest.GetClient(t)
+
+	var cdnID string
+	var originID string
+
+	const conditionalFeaturesConfig = `
+resource "cdn77_cdn" "lorem" {
+  label     = "cdn with conditional features"
+  origin_id = cdn77_origin_url.url.id
+
+
+  conditional_features = {
+    configuration = jsonencode([
+      {
+        if = [
+          "OR",
+          {
+            type   = "path-prefix"
+            prefix = "/Content/"
+          },
+          {
+            type   = "path-prefix"
+            prefix = "/pcktest/"
+          }
+        ]
+
+        then = [
+          {
+            name   = "replace_origin"
+            config = {
+              origins = [
+                {
+                  host   = "test-host"
+                  scheme = "https"
+                  conf = {
+                    next_upstream = "error timeout http_500 http_501 http_502 http_503 http_504 http_400 http_403 http_404 http_405 http_409 http_416"
+                  }
+                }
+              ]
+              order = "cv_origin_order"
+            }
+          }
+        ]
+      }
+    ])
+
+    secrets = {
+      SECRET1 = "abcdefgh11231"
+    }
+  }
+}
+`
+
+	acctest.Run(t, checkCdnsAndOriginDestroyed(client),
+		resource.TestStep{
+			Config: OriginResourceConfig + conditionalFeaturesConfig,
+			Check: resource.ComposeAggregateTestCheckFunc(
+				acctest.CheckAndAssignAttr(originRsc, "id", &originID),
+				acctest.CheckAndAssignAttr(rsc, "id", &cdnID),
+				resource.TestCheckResourceAttr(rsc, "conditional_features.secrets.%", "1"),
+				resource.TestCheckResourceAttr(rsc, "conditional_features.secrets.SECRET1", "abcdefgh11231"),
+				resource.TestCheckResourceAttrSet(rsc, "conditional_features.configuration"),
+			),
+		},
+	)
+}
+
+func TestAccCdnResource_ConditionalFeaturesImplicitAND(t *testing.T) {
+	const rsc = "cdn77_cdn.lorem"
+	const originRsc = "cdn77_origin_url.url"
+
+	client := acctest.GetClient(t)
+
+	var cdnID string
+	var originID string
+
+	const conditionalFeaturesConfig = `
+resource "cdn77_cdn" "lorem" {
+  label     = "cdn with conditional features"
+  origin_id = cdn77_origin_url.url.id
+
+  conditional_features = {
+    configuration = jsonencode([
+      {
+        if = [
+          {
+            type   = "path-prefix"
+            prefix = "/Content/"
+          },
+          {
+            type   = "path-suffix"
+            prefix = ".m3u8"
+          }
+        ]
+        then = [
+          {
+            name   = "set_var"
+            config = {
+              key   = "origin"
+              value = "east"
+            }
+          }
+        ]
+      }
+    ])
+    secrets = {
+      SECRET1 = "abcdefgh11231"
+    }
+  }
+}
+`
+
+	acctest.Run(t, checkCdnsAndOriginDestroyed(client),
+		resource.TestStep{
+			Config: OriginResourceConfig + conditionalFeaturesConfig,
+			Check: resource.ComposeAggregateTestCheckFunc(
+				acctest.CheckAndAssignAttr(originRsc, "id", &originID),
+				acctest.CheckAndAssignAttr(rsc, "id", &cdnID),
+				resource.TestCheckResourceAttr(rsc, "conditional_features.secrets.%", "1"),
+				resource.TestCheckResourceAttr(rsc, "conditional_features.secrets.SECRET1", "abcdefgh11231"),
+				resource.TestCheckResourceAttrSet(rsc, "conditional_features.configuration"),
+			),
+		},
+	)
+}
+
+func TestAccCdnResource_ConditionalFeaturesImplicitNoSecrets(t *testing.T) {
+	const rsc = "cdn77_cdn.lorem"
+	const originRsc = "cdn77_origin_url.url"
+
+	client := acctest.GetClient(t)
+
+	var cdnID string
+	var originID string
+
+	const conditionalFeaturesConfig = `
+resource "cdn77_cdn" "lorem" {
+  label     = "cdn with conditional features"
+  origin_id = cdn77_origin_url.url.id
+
+  conditional_features = {
+    configuration = jsonencode([
+      {
+        if = [
+		  "AND",
+          {
+            type   = "path-prefix"
+            prefix = "/Content/"
+          },
+          {
+            type   = "path-suffix"
+            prefix = ".m3u8"
+          }
+        ]
+        then = [
+          {
+            name   = "set_var"
+            config = {
+              key   = "origin"
+              value = "east"
+            }
+          }
+        ]
+      }
+    ])
+  }
+}
+`
+
+	acctest.Run(t, checkCdnsAndOriginDestroyed(client),
+		resource.TestStep{
+			Config: OriginResourceConfig + conditionalFeaturesConfig,
+			Check: resource.ComposeAggregateTestCheckFunc(
+				acctest.CheckAndAssignAttr(originRsc, "id", &originID),
+				acctest.CheckAndAssignAttr(rsc, "id", &cdnID),
+				resource.TestCheckResourceAttr(rsc, "conditional_features.secrets.%", "0"),
+				resource.TestCheckResourceAttrSet(rsc, "conditional_features.configuration"),
+			),
+		},
+	)
+}
+
+func TestAccCdnResource_ConditionalFeaturesConfigNormalization(t *testing.T) {
+	const rsc = "cdn77_cdn.lorem"
+	const originRsc = "cdn77_origin_url.url"
+
+	client := acctest.GetClient(t)
+
+	var cdnID string
+	var originID string
+
+	const initialConfig = `
+resource "cdn77_cdn" "lorem" {
+  label     = "cdn feature config normalization test"
+  origin_id = cdn77_origin_url.url.id
+
+  conditional_features = {
+    configuration = jsonencode([
+      {
+        "if": [
+          {
+            "type": "path-prefix",
+            "prefix": "/dai"
+          }
+        ],
+        "then": [
+          {
+            "name": "cache_disable",
+            "config": {}
+          },
+          {
+            "name": "response_hdr",
+            "config": {
+              "response_hdr_name":  "Cache-Control",
+              "response_hdr_value": "private, max-age=2"
+            }
+          }
+        ]
+      }
+    ])
+  }
+}
+`
+
+	const reapplyConfig = initialConfig
+
+	acctest.Run(t, checkCdnsAndOriginDestroyed(client),
+
+		resource.TestStep{
+			Config: OriginResourceConfig + initialConfig,
+			Check: resource.ComposeAggregateTestCheckFunc(
+				acctest.CheckAndAssignAttr(originRsc, "id", &originID),
+				acctest.CheckAndAssignAttr(rsc, "id", &cdnID),
+
+				resource.TestCheckResourceAttrSet(rsc, "conditional_features.configuration"),
+				resource.TestCheckResourceAttr(rsc, "conditional_features.secrets.%", "0"),
+			),
+		},
+
+		resource.TestStep{
+			Config:           OriginResourceConfig + reapplyConfig,
+			ConfigPlanChecks: acctest.ConfigPlanChecks(rsc, plancheck.ResourceActionNoop),
+			Check: resource.ComposeAggregateTestCheckFunc(
+				resource.TestCheckResourceAttr(rsc, "conditional_features.secrets.%", "0"),
+				resource.TestCheckResourceAttrSet(rsc, "conditional_features.configuration"),
+			),
+		},
+	)
+}
+
+func TestAccCdnResource_ConditionalFeaturesNoConfig(t *testing.T) {
+	const rsc = "cdn77_cdn.lorem"
+	const originRsc = "cdn77_origin_url.url"
+
+	client := acctest.GetClient(t)
+
+	var cdnID string
+	var originID string
+
+	const initialConfig = `
+resource "cdn77_cdn" "lorem" {
+  label     = "cdn feature config normalization test"
+  origin_id = cdn77_origin_url.url.id
+  conditional_features = {
+    configuration = jsonencode([
+      {
+        "if": [
+          {
+            "type": "path-prefix",
+            "prefix": "/dai"
+          }
+        ],
+        "then": [
+          {
+            "name": "cache_disable",
+          },
+          {
+            "name": "response_hdr",
+            "config": {
+              "response_hdr_name":  "Cache-Control",
+              "response_hdr_value": "private, max-age=2"
+            }
+          }
+        ]
+      }
+    ])
+  }
+}
+`
+
+	const reapplyConfig = initialConfig
+
+	acctest.Run(t, checkCdnsAndOriginDestroyed(client),
+
+		resource.TestStep{
+			Config: OriginResourceConfig + initialConfig,
+			Check: resource.ComposeAggregateTestCheckFunc(
+				acctest.CheckAndAssignAttr(originRsc, "id", &originID),
+				acctest.CheckAndAssignAttr(rsc, "id", &cdnID),
+
+				resource.TestCheckResourceAttrSet(rsc, "conditional_features.configuration"),
+				resource.TestCheckResourceAttr(rsc, "conditional_features.secrets.%", "0"),
+			),
+		},
+
+		resource.TestStep{
+			Config:           OriginResourceConfig + reapplyConfig,
+			ConfigPlanChecks: acctest.ConfigPlanChecks(rsc, plancheck.ResourceActionNoop),
+			Check: resource.ComposeAggregateTestCheckFunc(
+				resource.TestCheckResourceAttr(rsc, "conditional_features.secrets.%", "0"),
+				resource.TestCheckResourceAttrSet(rsc, "conditional_features.configuration"),
+			),
+		},
+	)
+}
+
 func TestAccCdnDataSource_OnlyRequiredFields(t *testing.T) {
 	const rsc = "data.cdn77_cdn.lorem"
 	const nonExistingCdnId = 7495732
@@ -536,7 +958,7 @@ func TestAccCdnDataSource_OnlyRequiredFields(t *testing.T) {
 				attrEq("origin_id", originId),
 				attrEq("creation_time", cdnCreationTime),
 				attrEq("url", cdnUrl),
-				attrEq("cache.max_age", fmt.Sprintf("%d", cdn77.MaxAgeN17280)),
+				attrEq("cache.max_age", fmt.Sprintf("%d", cdn77.N17280)),
 				attrEq("cache.requests_with_cookies_enabled", "true"),
 				attrEq("cnames.#", "0"),
 				attrEq("geo_protection.type", string(cdn77.Disabled)),
@@ -614,7 +1036,7 @@ func TestAccCdnDataSource_AllFields(t *testing.T) {
 
 	cdnEditRequest := cdn77.CdnEditJSONRequestBody{
 		Cache: &cdn77.Cache{
-			MaxAge:                     util.Pointer(cdn77.MaxAgeN60),
+			MaxAge:                     util.Pointer(cdn77.N60),
 			MaxAge404:                  nullable.NewNullableWithValue(cdn77.MaxAge404N5),
 			RequestsWithCookiesEnabled: util.Pointer(false),
 		},
@@ -664,7 +1086,7 @@ func TestAccCdnDataSource_AllFields(t *testing.T) {
 			attrEq("origin_id", originId),
 			attrEq("creation_time", cdnCreationTime),
 			attrEq("url", cdnUrl),
-			attrEq("cache.max_age", fmt.Sprintf("%d", cdn77.MaxAgeN60)),
+			attrEq("cache.max_age", fmt.Sprintf("%d", cdn77.N60)),
 			attrEq("cache.max_age_404", fmt.Sprintf("%d", cdn77.MaxAge404N5)),
 			attrEq("cache.requests_with_cookies_enabled", "false"),
 			attrEq("cnames.#", "2"),
@@ -745,7 +1167,7 @@ func checkCdnDefaults(
 			acctest.EqualField("label", c.Label, cdnLabel),
 			acctest.NullField("note", c.Note),
 			acctest.EqualField("len(cnames)", len(c.Cnames), 0),
-			acctest.EqualField("cache.max_age", *c.Cache.MaxAge, cdn77.MaxAgeN17280),
+			acctest.EqualField("cache.max_age", *c.Cache.MaxAge, cdn77.N17280),
 			acctest.NullField("cache.max_age_404", c.Cache.MaxAge404),
 			acctest.EqualField(
 				"cache.requests_with_cookies_enabled",

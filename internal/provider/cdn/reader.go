@@ -1,11 +1,14 @@
 package cdn
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"time"
 
 	"github.com/cdn77/cdn77-client-go/v2"
 	"github.com/cdn77/terraform-provider-cdn77/internal/util"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
@@ -69,6 +72,8 @@ func (r *Reader) Process(ctx context.Context, model Model, cdn *cdn77.Cdn, diags
 		queryStringParameters = util.SetValueFrom(ctx, diags, types.StringType, *cdn.QueryString.Parameters)
 	}
 
+	conditionalFeatures := r.readConditionalFeatures(ctx, model, cdn, diags)
+
 	if diags.HasError() {
 		return model
 	}
@@ -126,6 +131,7 @@ func (r *Reader) Process(ctx context.Context, model Model, cdn *cdn77.Cdn, diags
 			Type:  types.StringValue(string(cdn.Ssl.Type)),
 			SslId: types.StringPointerValue(cdn.Ssl.SslId),
 		},
+		ConditionalFeatures: conditionalFeatures,
 	}
 }
 
@@ -137,4 +143,134 @@ func (*Reader) getCnamesSet(ctx context.Context, cdn *cdn77.Cdn, diags *diag.Dia
 	}
 
 	return util.SetValueFrom(ctx, diags, types.StringType, cnames)
+}
+
+func (r *Reader) readConditionalFeatures(
+	ctx context.Context,
+	state Model,
+	c *cdn77.Cdn,
+	diags *diag.Diagnostics,
+) *ModelConditionalFeatures {
+	if c.ConditionalFeatures == nil {
+		return nil
+	}
+
+	src := c.ConditionalFeatures
+
+	configuration := r.readConditionalFeaturesConfiguration(diags, src)
+	secrets := r.readConditionalFeaturesSecrets(ctx, diags, src, state.ConditionalFeatures)
+
+	if diags.HasError() {
+		return nil
+	}
+
+	isConfigEmpty := configuration.IsNull()
+	isSecretsEmpty := secrets.IsNull() || len(secrets.Elements()) == 0
+
+	if isConfigEmpty && isSecretsEmpty {
+		return nil
+	}
+
+	return &ModelConditionalFeatures{
+		Configuration: configuration,
+		Secrets:       secrets,
+	}
+}
+
+func (*Reader) readConditionalFeaturesConfiguration(
+	diags *diag.Diagnostics,
+	src *cdn77.ConditionalFeatures,
+) types.String {
+	if src.Configuration == nil || len(*src.Configuration) == 0 {
+		return types.StringNull()
+	}
+
+	raw, err := json.Marshal(src.Configuration)
+	if err != nil {
+		diags.AddError("Failed to marshal conditional_features.configuration", err.Error())
+
+		return types.StringNull()
+	}
+
+	raw, err = normalizeConditionalFeaturesEmptyConfigArray(raw)
+	if err != nil {
+		diags.AddError("Failed to normalize conditional_features.configuration", err.Error())
+
+		return types.StringNull()
+	}
+
+	canon, err := canonicalizeJSON(string(raw))
+	if err != nil {
+		diags.AddError("Failed to canonicalize conditional_features.configuration", err.Error())
+
+		return types.StringNull()
+	}
+
+	return types.StringValue(canon)
+}
+
+func (*Reader) readConditionalFeaturesSecrets(
+	ctx context.Context,
+	diags *diag.Diagnostics,
+	src *cdn77.ConditionalFeatures,
+	state *ModelConditionalFeatures,
+) types.Map {
+	if src.Secrets != nil && len(*src.Secrets) > 0 {
+		secrets, diagnostics := types.MapValueFrom(ctx, types.StringType, *src.Secrets)
+		diags.Append(diagnostics...)
+
+		return secrets
+	}
+
+	if state != nil &&
+		!state.Secrets.IsNull() &&
+		!state.Secrets.IsUnknown() {
+		return state.Secrets
+	}
+
+	return types.MapValueMust(types.StringType, map[string]attr.Value{})
+}
+
+func normalizeConditionalFeaturesEmptyConfigArray(raw []byte) ([]byte, error) { //nolint:cyclop
+	var rules []map[string]any
+	if err := json.Unmarshal(raw, &rules); err != nil {
+		return nil, err
+	}
+
+	for _, rule := range rules {
+		thenValue, exists := rule["then"]
+		if !exists {
+			continue
+		}
+
+		thenActions, ok := thenValue.([]any)
+		if !ok {
+			continue
+		}
+
+		for _, actionValue := range thenActions {
+			actionMap, ok := actionValue.(map[string]any)
+			if !ok {
+				continue
+			}
+
+			configValue, exists := actionMap["config"]
+			if !exists {
+				continue
+			}
+
+			if configArray, ok := configValue.([]any); ok && len(configArray) == 0 {
+				actionMap["config"] = map[string]any{}
+			}
+		}
+	}
+
+	normalizedJSON, err := json.Marshal(rules)
+	if err != nil {
+		return nil, err
+	}
+
+	normalizedJSON = bytes.TrimSpace(normalizedJSON)
+
+	return normalizedJSON, nil
 }

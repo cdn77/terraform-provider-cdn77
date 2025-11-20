@@ -2,8 +2,10 @@ package cdn
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/cdn77/cdn77-client-go/v2"
@@ -12,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/oapi-codegen/nullable"
 )
@@ -78,30 +81,7 @@ func (r *Resource) Create(ctx context.Context, req resource.CreateRequest, resp 
 		return
 	}
 
-	editRequest, ok := r.createEditRequest(ctx, diags, data)
-	if !ok {
-		r.deleteAfterFailedEdit(ctx, diags, id)
-
-		return
-	}
-
-	const editErrMessage = "Failed to edit CDN after creation"
-
-	editResponse, err := r.Client.CdnEditWithResponse(ctx, response.JSON201.Id, editRequest)
-	if err != nil {
-		diags.AddError(editErrMessage, err.Error())
-		r.deleteAfterFailedEdit(ctx, diags, id)
-
-		return
-	}
-
-	util.ProcessEmptyResponse(diags, editResponse, errMessage, func() {
-		diags.Append(resp.State.Set(ctx, data)...)
-	})
-
-	if diags.HasError() {
-		r.deleteAfterFailedEdit(ctx, diags, id)
-	}
+	r.editCdnAfterCreation(ctx, diags, id, data, &resp.State)
 }
 
 func (r *Resource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
@@ -167,6 +147,39 @@ func (*Resource) ImportState(
 	}
 
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), id)...)
+}
+
+func (r *Resource) editCdnAfterCreation(
+	ctx context.Context,
+	diags *diag.Diagnostics,
+	id int,
+	data Model,
+	state *tfsdk.State,
+) {
+	editRequest, ok := r.createEditRequest(ctx, diags, data)
+	if !ok {
+		r.deleteAfterFailedEdit(ctx, diags, id)
+
+		return
+	}
+
+	const editErrMessage = "Failed to edit CDN after creation"
+
+	editResponse, err := r.Client.CdnEditWithResponse(ctx, id, editRequest)
+	if err != nil {
+		diags.AddError(editErrMessage, err.Error())
+		r.deleteAfterFailedEdit(ctx, diags, id)
+
+		return
+	}
+
+	util.ProcessEmptyResponse(diags, editResponse, editErrMessage, func() {
+		diags.Append(state.Set(ctx, data)...)
+	})
+
+	if diags.HasError() {
+		r.deleteAfterFailedEdit(ctx, diags, id)
+	}
 }
 
 func (r *Resource) createEditRequest( //nolint:cyclop
@@ -281,13 +294,147 @@ func (r *Resource) createEditRequest( //nolint:cyclop
 
 	request.Ssl.Type = cdn77.SslType(data.Ssl.Type.ValueString())
 
+	if data.ConditionalFeatures != nil {
+		cf, ok := r.buildConditionalFeatures(diags, &data)
+		if !ok {
+			return cdn77.CdnEditJSONRequestBody{}, false
+		}
+
+		if cf != nil {
+			request.ConditionalFeatures = cf
+		}
+	}
+
 	return request, true
+}
+
+func (*Resource) buildConditionalFeatures(
+	diags *diag.Diagnostics,
+	data *Model,
+) (*cdn77.ConditionalFeatures, bool) {
+	if data.ConditionalFeatures == nil {
+		return nil, true
+	}
+
+	cf := &cdn77.ConditionalFeatures{}
+
+	hasConfig, ok := parseConditionalFeaturesConfig(diags, data, cf)
+	if !ok {
+		return nil, false
+	}
+
+	hasSecrets, ok := parseConditionalFeaturesSecrets(data, cf)
+	if !ok {
+		return nil, false
+	}
+
+	if !hasConfig && !hasSecrets {
+		return nil, true
+	}
+
+	return cf, true
+}
+
+func parseConditionalFeaturesConfig(
+	diags *diag.Diagnostics,
+	data *Model,
+	cf *cdn77.ConditionalFeatures,
+) (hasConfig bool, ok bool) {
+	cfgAttr := data.ConditionalFeatures.Configuration
+
+	if cfgAttr.IsNull() || cfgAttr.IsUnknown() {
+		return false, true
+	}
+
+	raw := strings.TrimSpace(cfgAttr.ValueString())
+	if raw == "" {
+		return false, true
+	}
+
+	normalizedBytes, err := normalizeConditionalFeaturesEmptyConfigArray([]byte(raw))
+	if err != nil {
+		diags.AddAttributeError(
+			path.Root("conditional_features").AtName("configuration"),
+			"Invalid conditional_features.configuration",
+			fmt.Sprintf("Configuration must be a JSON array: %v", err),
+		)
+
+		return false, false
+	}
+
+	rawCanonical, err := canonicalizeJSON(string(normalizedBytes))
+	if err != nil {
+		diags.AddAttributeError(
+			path.Root("conditional_features").AtName("configuration"),
+			"Invalid JSON",
+			fmt.Sprintf("Configuration must contain valid JSON: %v", err),
+		)
+
+		return false, false
+	}
+
+	var parsed []cdn77.ConditionalFeatureConfiguration
+	if err := json.Unmarshal([]byte(rawCanonical), &parsed); err != nil {
+		diags.AddAttributeError(
+			path.Root("conditional_features").AtName("configuration"),
+			"Invalid conditional_features.configuration",
+			fmt.Sprintf("Configuration must be a JSON array: %v", err),
+		)
+
+		return false, false
+	}
+
+	if len(parsed) == 0 {
+		return false, true
+	}
+
+	cf.Configuration = &parsed
+
+	return true, true
+}
+
+func parseConditionalFeaturesSecrets(
+	data *Model,
+	cf *cdn77.ConditionalFeatures,
+) (hasSecrets bool, ok bool) {
+	secretAttr := data.ConditionalFeatures.Secrets
+
+	if secretAttr.IsNull() || secretAttr.IsUnknown() {
+		data.ConditionalFeatures.Secrets = types.MapNull(types.StringType)
+
+		return false, true
+	}
+
+	elements := secretAttr.Elements()
+	if len(elements) == 0 {
+		return false, true
+	}
+
+	secrets := make(map[string]string)
+
+	for key, valTyped := range elements {
+		val := valTyped.(types.String)
+
+		if val.IsNull() || val.IsUnknown() {
+			continue
+		}
+
+		secrets[key] = val.ValueString()
+	}
+
+	if len(secrets) == 0 {
+		return false, true
+	}
+
+	cf.Secrets = &secrets
+
+	return true, true
 }
 
 func (*Resource) createDefaultEditRequest() cdn77.CdnEditJSONRequestBody {
 	return cdn77.CdnEditJSONRequestBody{
 		Cache: &cdn77.Cache{
-			MaxAge:                     util.Pointer(cdn77.MaxAgeN17280),
+			MaxAge:                     util.Pointer(cdn77.N17280),
 			MaxAge404:                  nullable.NewNullNullable[cdn77.MaxAge404](),
 			RequestsWithCookiesEnabled: util.Pointer(true),
 		},
@@ -319,6 +466,20 @@ func (r *Resource) deleteAfterFailedEdit(ctx context.Context, diags *diag.Diagno
 	}
 
 	util.ValidateDeletionResponse(diags, response, errMessage)
+}
+
+func canonicalizeJSON(raw string) (string, error) {
+	var data any
+	if err := json.Unmarshal([]byte(raw), &data); err != nil {
+		return "", fmt.Errorf("failed to unmarshal JSON: %w", err)
+	}
+
+	canonicalJSON, err := json.Marshal(data)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal JSON: %w", err)
+	}
+
+	return string(canonicalJSON), nil
 }
 
 var _ datasource.DataSourceWithConfigure = &DataSource{}

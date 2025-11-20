@@ -29,6 +29,7 @@ data "cdn77_cdn" "example" {
 
 - `cache` (Attributes) Your files will remain cached for the specified duration, after which your origin will be checked for an updated version of your files. Expiry/cache-control headers override this setting. (see [below for nested schema](#nestedatt--cache))
 - `cnames` (Set of String) CNAME assigned to CDN. CNAME should be mapped via DNS to CDN URL. Otherwise it's not possible to generate an SSL certificate for any related CNAME.
+- `conditional_features` (Attributes) Conditional features configuration and secrets. (see [below for nested schema](#nestedatt--conditional_features))
 - `creation_time` (String) Timestamp when CDN was created
 - `geo_protection` (Attributes) Geo protection enables you to control which countries can access your content directly (see [below for nested schema](#nestedatt--geo_protection))
 - `headers` (Attributes) (see [below for nested schema](#nestedatt--headers))
@@ -55,6 +56,15 @@ Read-Only:
 - `max_age` (Number) In minutes
 - `max_age_404` (Number) In seconds
 - `requests_with_cookies_enabled` (Boolean) When disabled, requests with cookies will ignore changing cookie headers allowing all requests to hit the cache. When enabled, requests with cookies will be handled separately, so when the cookie changes it will not hit the previously cached request with different cookie options.
+
+
+<a id="nestedatt--conditional_features"></a>
+### Nested Schema for `conditional_features`
+
+Read-Only:
+
+- `configuration` (String) JSON configuration for conditional features.
+- `secrets` (Map of String, Sensitive)
 
 
 <a id="nestedatt--geo_protection"></a>
