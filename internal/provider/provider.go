@@ -128,12 +128,14 @@ func (*Cdn77Provider) getConfig(
 	diags *diag.Diagnostics,
 	data Cdn77ProviderModel,
 ) (endpoint string, token string, timeout time.Duration) {
+	var timeoutSeconds int64
+
 	endpoint = os.Getenv("CDN77_ENDPOINT")
 	token = os.Getenv("CDN77_TOKEN")
 
 	timeoutString := os.Getenv("CDN77_TIMEOUT")
 	if timeoutString != "" {
-		timeoutSeconds, err := strconv.Atoi(timeoutString)
+		parsedTimeout, err := strconv.Atoi(timeoutString)
 		if err != nil {
 			diags.AddError(
 				"Invalid CDN77 API timeout",
@@ -141,7 +143,7 @@ func (*Cdn77Provider) getConfig(
 			)
 		}
 
-		timeout = time.Duration(timeoutSeconds)
+		timeoutSeconds = int64(parsedTimeout)
 	}
 
 	if !data.Endpoint.IsNull() {
@@ -166,14 +168,14 @@ func (*Cdn77Provider) getConfig(
 	}
 
 	if !data.Timeout.IsNull() {
-		timeout = time.Duration(data.Timeout.ValueInt64())
+		timeoutSeconds = data.Timeout.ValueInt64()
 	}
 
-	if timeout == 0 {
-		timeout = 30
+	if timeoutSeconds == 0 {
+		timeoutSeconds = 30
 	}
 
-	timeout *= time.Second
+	timeout = time.Duration(timeoutSeconds) * time.Second
 
 	return endpoint, token, timeout
 }
