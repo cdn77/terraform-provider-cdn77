@@ -138,6 +138,7 @@ func processResponseErrors(diags *diag.Diagnostics, response Response, errMessag
 		}
 
 		var detail string
+
 		switch m := vField.Interface().(type) {
 		case *cdn77.Errors:
 			detail = buildResponseErrMessage(response, m.Errors, nil)

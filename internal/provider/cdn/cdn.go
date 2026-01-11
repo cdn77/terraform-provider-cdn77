@@ -14,7 +14,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/oapi-codegen/nullable"
 )
@@ -41,25 +40,12 @@ func (r *Resource) Create(ctx context.Context, req resource.CreateRequest, resp 
 		return
 	}
 
-	var cnamesPtr *[]string
-
-	if !data.Cnames.IsNull() {
-		cnames, ok := util.StringSetToSlice(ctx, diags, path.Root("cnames"), data.Cnames)
-		if !ok {
-			return
-		}
-
-		cnamesPtr = &cnames
+	request, ok := r.createAddRequest(ctx, diags, data)
+	if !ok {
+		return
 	}
 
 	const errMessage = "Failed to create CDN"
-
-	request := cdn77.CdnAddJSONRequestBody{
-		OriginId: data.OriginId.ValueString(),
-		Label:    data.Label.ValueString(),
-		Cnames:   cnamesPtr,
-		Note:     util.StringValueToNullable(data.Note),
-	}
 
 	response, err := r.Client.CdnAddWithResponse(ctx, request)
 	if err != nil {
@@ -81,7 +67,7 @@ func (r *Resource) Create(ctx context.Context, req resource.CreateRequest, resp 
 		return
 	}
 
-	r.editCdnAfterCreation(ctx, diags, id, data, &resp.State)
+	diags.Append(resp.State.Set(ctx, data)...)
 }
 
 func (r *Resource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
@@ -149,59 +135,85 @@ func (*Resource) ImportState(
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), id)...)
 }
 
-func (r *Resource) editCdnAfterCreation(
-	ctx context.Context,
-	diags *diag.Diagnostics,
-	id int,
-	data Model,
-	state *tfsdk.State,
-) {
-	editRequest, ok := r.createEditRequest(ctx, diags, data)
-	if !ok {
-		r.deleteAfterFailedEdit(ctx, diags, id)
-
-		return
-	}
-
-	const editErrMessage = "Failed to edit CDN after creation"
-
-	editResponse, err := r.Client.CdnEditWithResponse(ctx, id, editRequest)
-	if err != nil {
-		diags.AddError(editErrMessage, err.Error())
-		r.deleteAfterFailedEdit(ctx, diags, id)
-
-		return
-	}
-
-	util.ProcessEmptyResponse(diags, editResponse, editErrMessage, func() {
-		diags.Append(state.Set(ctx, data)...)
-	})
-
-	if diags.HasError() {
-		r.deleteAfterFailedEdit(ctx, diags, id)
-	}
+type cdnRequestParams struct {
+	Cache               *cdn77.Cache
+	Cnames              *[]string
+	ConditionalFeatures *cdn77.ConditionalFeatures
+	GeoProtection       *cdn77.GeoProtection
+	Headers             *cdn77.Headers
+	HotlinkProtection   *cdn77.HotlinkProtection
+	HttpsRedirect       *cdn77.HttpsRedirect
+	IpProtection        *cdn77.IpProtection
+	Mp4PseudoStreaming  *cdn77.Mp4PseudoStreaming
+	Note                nullable.Nullable[string]
+	OriginHeaders       *cdn77.OriginHeaders
+	QueryString         *cdn77.QueryString
+	RateLimit           *cdn77.RateLimit
+	SecureToken         *cdn77.SecureToken
+	Ssl                 *cdn77.CdnSsl
 }
 
-func (r *Resource) createEditRequest( //nolint:cyclop
+func (r *Resource) buildCdnRequestParams( //nolint:cyclop
 	ctx context.Context,
 	diags *diag.Diagnostics,
 	data Model,
-) (cdn77.CdnEditJSONRequestBody, bool) {
-	request := r.createDefaultEditRequest()
-	request.Label = data.Label.ValueStringPointer()
-	request.OriginId = data.OriginId.ValueStringPointer()
-
-	request.Cache.MaxAge = util.Pointer(cdn77.MaxAge(data.Cache.MaxAge.ValueInt64()))
-	request.Cache.MaxAge404 = util.Int64ValueToNullable[cdn77.MaxAge404](data.Cache.MaxAge404)
-	request.Cache.RequestsWithCookiesEnabled = data.Cache.RequestsWithCookiesEnabled.ValueBoolPointer()
+) (cdnRequestParams, bool) {
+	params := cdnRequestParams{
+		Cache: &cdn77.Cache{
+			MaxAge:                     util.Pointer(cdn77.MaxAge(data.Cache.MaxAge.ValueInt64())),
+			MaxAge404:                  util.Int64ValueToNullable[cdn77.MaxAge404](data.Cache.MaxAge404),
+			RequestsWithCookiesEnabled: data.Cache.RequestsWithCookiesEnabled.ValueBoolPointer(),
+		},
+		GeoProtection: &cdn77.GeoProtection{
+			Type: cdn77.AccessProtectionType(data.GeoProtection.Type.ValueString()),
+		},
+		Headers: &cdn77.Headers{
+			ContentDisposition: &cdn77.ContentDisposition{
+				Type: util.Pointer(cdn77.ContentDispositionType(data.Headers.ContentDispositionType.ValueString())),
+			},
+			CorsEnabled:                 data.Headers.CorsEnabled.ValueBoolPointer(),
+			CorsTimingEnabled:           data.Headers.CorsTimingEnabled.ValueBoolPointer(),
+			CorsWildcardEnabled:         data.Headers.CorsWildcardEnabled.ValueBoolPointer(),
+			HostHeaderForwardingEnabled: data.Headers.HostHeaderForwardingEnabled.ValueBoolPointer(),
+		},
+		HotlinkProtection: &cdn77.HotlinkProtection{
+			Type:               cdn77.AccessProtectionType(data.HotlinkProtection.Type.ValueString()),
+			EmptyRefererDenied: data.HotlinkProtection.EmptyRefererDenied.ValueBool(),
+		},
+		HttpsRedirect: &cdn77.HttpsRedirect{
+			Enabled: data.HttpsRedirect.Enabled.ValueBool(),
+		},
+		IpProtection: &cdn77.IpProtection{
+			Type: cdn77.AccessProtectionType(data.IpProtection.Type.ValueString()),
+		},
+		Mp4PseudoStreaming: &cdn77.Mp4PseudoStreaming{
+			Enabled: data.Mp4PseudoStreamingEnabled.ValueBoolPointer(),
+		},
+		Note: util.StringValueToNullable(data.Note),
+		OriginHeaders: &cdn77.OriginHeaders{
+			Custom: nullable.NewNullNullable[map[string]string](),
+		},
+		QueryString: &cdn77.QueryString{
+			IgnoreType: cdn77.QueryStringIgnoreType(data.QueryString.IgnoreType.ValueString()),
+		},
+		RateLimit: &cdn77.RateLimit{
+			Enabled: data.RateLimitEnabled.ValueBool(),
+		},
+		SecureToken: &cdn77.SecureToken{
+			Type: cdn77.SecureTokenType(data.SecureToken.Type.ValueString()),
+		},
+		Ssl: &cdn77.CdnSsl{
+			Type: cdn77.SslType(data.Ssl.Type.ValueString()),
+		},
+	}
 
 	if !data.Cnames.IsNull() {
 		cnames, ok := util.StringSetToSlice(ctx, diags, path.Root("cnames"), data.Cnames)
 		if !ok {
-			return cdn77.CdnEditJSONRequestBody{}, false
+			return cdnRequestParams{}, false
 		}
 
-		request.Cnames = &cnames
+		params.Cnames = &cnames
 	}
 
 	if !data.GeoProtection.Countries.IsNull() {
@@ -209,103 +221,138 @@ func (r *Resource) createEditRequest( //nolint:cyclop
 		countries, ok := util.StringSetToSlice(ctx, diags, countriesPath, data.GeoProtection.Countries)
 
 		if !ok {
-			return cdn77.CdnEditJSONRequestBody{}, false
+			return cdnRequestParams{}, false
 		}
 
-		request.GeoProtection.Countries = util.Pointer(countries)
+		params.GeoProtection.Countries = util.Pointer(countries)
 	}
-
-	request.GeoProtection.Type = cdn77.AccessProtectionType(data.GeoProtection.Type.ValueString())
-
-	request.Headers.ContentDisposition.Type = util.Pointer(
-		cdn77.ContentDispositionType(data.Headers.ContentDispositionType.ValueString()),
-	)
-	request.Headers.CorsEnabled = data.Headers.CorsEnabled.ValueBoolPointer()
-	request.Headers.CorsTimingEnabled = data.Headers.CorsTimingEnabled.ValueBoolPointer()
-	request.Headers.CorsWildcardEnabled = data.Headers.CorsWildcardEnabled.ValueBoolPointer()
-	request.Headers.HostHeaderForwardingEnabled = data.Headers.HostHeaderForwardingEnabled.ValueBoolPointer()
 
 	if !data.HotlinkProtection.Domains.IsNull() {
 		domainsPath := path.Root("hotlink_protection").AtName("domains")
 		domains, ok := util.StringSetToSlice(ctx, diags, domainsPath, data.HotlinkProtection.Domains)
 
 		if !ok {
-			return cdn77.CdnEditJSONRequestBody{}, false
+			return cdnRequestParams{}, false
 		}
 
-		request.HotlinkProtection.Domains = util.Pointer(domains)
+		params.HotlinkProtection.Domains = util.Pointer(domains)
 	}
-
-	request.HotlinkProtection.Type = cdn77.AccessProtectionType(data.HotlinkProtection.Type.ValueString())
-	request.HotlinkProtection.EmptyRefererDenied = data.HotlinkProtection.EmptyRefererDenied.ValueBool()
 
 	if !data.HttpsRedirect.Code.IsNull() {
-		request.HttpsRedirect.Code = util.Pointer(cdn77.HttpsRedirectCode(data.HttpsRedirect.Code.ValueInt64()))
+		params.HttpsRedirect.Code = util.Pointer(cdn77.HttpsRedirectCode(data.HttpsRedirect.Code.ValueInt64()))
 	}
-
-	request.HttpsRedirect.Enabled = data.HttpsRedirect.Enabled.ValueBool()
 
 	if !data.IpProtection.Ips.IsNull() {
 		ips, ok := util.StringSetToSlice(ctx, diags, path.Root("ip_protection").AtName("ips"), data.IpProtection.Ips)
 		if !ok {
-			return cdn77.CdnEditJSONRequestBody{}, false
+			return cdnRequestParams{}, false
 		}
 
-		request.IpProtection.Ips = util.Pointer(ips)
+		params.IpProtection.Ips = util.Pointer(ips)
 	}
-
-	request.IpProtection.Type = cdn77.AccessProtectionType(data.IpProtection.Type.ValueString())
-	request.Mp4PseudoStreaming.Enabled = data.Mp4PseudoStreamingEnabled.ValueBoolPointer()
-	request.Note = util.StringValueToNullable(data.Note)
 
 	if !data.OriginHeaders.IsNull() {
 		headers, ok := util.StringMapToMap(ctx, diags, path.Root("origin_headers"), data.OriginHeaders)
 		if !ok {
-			return cdn77.CdnEditJSONRequestBody{}, false
+			return cdnRequestParams{}, false
 		}
 
-		request.OriginHeaders.Custom = nullable.NewNullableWithValue(headers)
+		params.OriginHeaders.Custom = nullable.NewNullableWithValue(headers)
 	}
 
 	if !data.QueryString.Parameters.IsNull() {
-		paramsPath := path.Root("query_string").AtName("parameters")
-		params, ok := util.StringSetToSlice(ctx, diags, paramsPath, data.QueryString.Parameters)
+		queryParamsPath := path.Root("query_string").AtName("parameters")
+		queryParams, ok := util.StringSetToSlice(ctx, diags, queryParamsPath, data.QueryString.Parameters)
 
 		if !ok {
-			return cdn77.CdnEditJSONRequestBody{}, false
+			return cdnRequestParams{}, false
 		}
 
-		request.QueryString.Parameters = util.Pointer(params)
+		params.QueryString.Parameters = util.Pointer(queryParams)
 	}
-
-	request.QueryString.IgnoreType = cdn77.QueryStringIgnoreType(data.QueryString.IgnoreType.ValueString())
-
-	request.RateLimit.Enabled = data.RateLimitEnabled.ValueBool()
 
 	if !data.SecureToken.Token.IsNull() {
-		request.SecureToken.Token = data.SecureToken.Token.ValueStringPointer()
+		params.SecureToken.Token = data.SecureToken.Token.ValueStringPointer()
 	}
-
-	request.SecureToken.Type = cdn77.SecureTokenType(data.SecureToken.Type.ValueString())
 
 	if !data.Ssl.SslId.IsNull() {
-		request.Ssl.SslId = data.Ssl.SslId.ValueStringPointer()
+		params.Ssl.SslId = data.Ssl.SslId.ValueStringPointer()
 	}
-
-	request.Ssl.Type = cdn77.SslType(data.Ssl.Type.ValueString())
 
 	if data.ConditionalFeatures != nil {
-		cf, ok := r.buildConditionalFeatures(diags, &data)
+		conditionalFeatures, ok := r.buildConditionalFeatures(diags, &data)
 		if !ok {
-			return cdn77.CdnEditJSONRequestBody{}, false
+			return cdnRequestParams{}, false
 		}
 
-		if cf != nil {
-			request.ConditionalFeatures = cf
+		if conditionalFeatures != nil {
+			params.ConditionalFeatures = conditionalFeatures
 		}
 	}
 
-	return request, true
+	return params, true
+}
+
+func (r *Resource) createAddRequest(
+	ctx context.Context,
+	diags *diag.Diagnostics,
+	data Model,
+) (cdn77.CdnAddJSONRequestBody, bool) {
+	params, ok := r.buildCdnRequestParams(ctx, diags, data)
+	if !ok {
+		return cdn77.CdnAddJSONRequestBody{}, false
+	}
+
+	return cdn77.CdnAddJSONRequestBody{
+		Label:               data.Label.ValueString(),
+		OriginId:            data.OriginId.ValueString(),
+		Cache:               params.Cache,
+		Cnames:              params.Cnames,
+		ConditionalFeatures: params.ConditionalFeatures,
+		GeoProtection:       params.GeoProtection,
+		Headers:             params.Headers,
+		HotlinkProtection:   params.HotlinkProtection,
+		HttpsRedirect:       params.HttpsRedirect,
+		IpProtection:        params.IpProtection,
+		Mp4PseudoStreaming:  params.Mp4PseudoStreaming,
+		Note:                params.Note,
+		OriginHeaders:       params.OriginHeaders,
+		QueryString:         params.QueryString,
+		RateLimit:           params.RateLimit,
+		SecureToken:         params.SecureToken,
+		Ssl:                 params.Ssl,
+	}, true
+}
+
+func (r *Resource) createEditRequest(
+	ctx context.Context,
+	diags *diag.Diagnostics,
+	data Model,
+) (cdn77.CdnEditJSONRequestBody, bool) {
+	params, ok := r.buildCdnRequestParams(ctx, diags, data)
+	if !ok {
+		return cdn77.CdnEditJSONRequestBody{}, false
+	}
+
+	return cdn77.CdnEditJSONRequestBody{
+		Label:               data.Label.ValueStringPointer(),
+		OriginId:            data.OriginId.ValueStringPointer(),
+		Cache:               params.Cache,
+		Cnames:              params.Cnames,
+		ConditionalFeatures: params.ConditionalFeatures,
+		GeoProtection:       params.GeoProtection,
+		Headers:             params.Headers,
+		HotlinkProtection:   params.HotlinkProtection,
+		HttpsRedirect:       params.HttpsRedirect,
+		IpProtection:        params.IpProtection,
+		Mp4PseudoStreaming:  params.Mp4PseudoStreaming,
+		Note:                params.Note,
+		OriginHeaders:       params.OriginHeaders,
+		QueryString:         params.QueryString,
+		RateLimit:           params.RateLimit,
+		SecureToken:         params.SecureToken,
+		Ssl:                 params.Ssl,
+	}, true
 }
 
 func (*Resource) buildConditionalFeatures(
@@ -316,14 +363,14 @@ func (*Resource) buildConditionalFeatures(
 		return nil, true
 	}
 
-	cf := &cdn77.ConditionalFeatures{}
+	conditionalFeatures := &cdn77.ConditionalFeatures{}
 
-	hasConfig, ok := parseConditionalFeaturesConfig(diags, data, cf)
+	hasConfig, ok := parseConditionalFeaturesConfig(diags, data, conditionalFeatures)
 	if !ok {
 		return nil, false
 	}
 
-	hasSecrets, ok := parseConditionalFeaturesSecrets(data, cf)
+	hasSecrets, ok := parseConditionalFeaturesSecrets(data, conditionalFeatures)
 	if !ok {
 		return nil, false
 	}
@@ -332,21 +379,21 @@ func (*Resource) buildConditionalFeatures(
 		return nil, true
 	}
 
-	return cf, true
+	return conditionalFeatures, true
 }
 
 func parseConditionalFeaturesConfig(
 	diags *diag.Diagnostics,
 	data *Model,
-	cf *cdn77.ConditionalFeatures,
+	conditionalFeatures *cdn77.ConditionalFeatures,
 ) (hasConfig bool, ok bool) {
-	cfgAttr := data.ConditionalFeatures.Configuration
+	configAttr := data.ConditionalFeatures.Configuration
 
-	if cfgAttr.IsNull() || cfgAttr.IsUnknown() {
+	if configAttr.IsNull() || configAttr.IsUnknown() {
 		return false, true
 	}
 
-	raw := strings.TrimSpace(cfgAttr.ValueString())
+	raw := strings.TrimSpace(configAttr.ValueString())
 	if raw == "" {
 		return false, true
 	}
@@ -388,14 +435,14 @@ func parseConditionalFeaturesConfig(
 		return false, true
 	}
 
-	cf.Configuration = &parsed
+	conditionalFeatures.Configuration = &parsed
 
 	return true, true
 }
 
 func parseConditionalFeaturesSecrets(
 	data *Model,
-	cf *cdn77.ConditionalFeatures,
+	conditionalFeatures *cdn77.ConditionalFeatures,
 ) (hasSecrets bool, ok bool) {
 	secretAttr := data.ConditionalFeatures.Secrets
 
@@ -426,46 +473,9 @@ func parseConditionalFeaturesSecrets(
 		return false, true
 	}
 
-	cf.Secrets = &secrets
+	conditionalFeatures.Secrets = &secrets
 
 	return true, true
-}
-
-func (*Resource) createDefaultEditRequest() cdn77.CdnEditJSONRequestBody {
-	return cdn77.CdnEditJSONRequestBody{
-		Cache: &cdn77.Cache{
-			MaxAge:                     util.Pointer(cdn77.N17280),
-			MaxAge404:                  nullable.NewNullNullable[cdn77.MaxAge404](),
-			RequestsWithCookiesEnabled: util.Pointer(true),
-		},
-		GeoProtection: &cdn77.GeoProtection{Type: cdn77.Disabled},
-		Headers: &cdn77.Headers{
-			ContentDisposition: &cdn77.ContentDisposition{Type: util.Pointer(cdn77.ContentDispositionTypeNone)},
-		},
-		HotlinkProtection:  &cdn77.HotlinkProtection{Type: cdn77.Disabled},
-		HttpsRedirect:      &cdn77.HttpsRedirect{},
-		IpProtection:       &cdn77.IpProtection{Type: cdn77.Disabled},
-		Mp4PseudoStreaming: &cdn77.Mp4PseudoStreaming{Enabled: util.Pointer(false)},
-		Note:               nullable.NewNullNullable[string](),
-		OriginHeaders:      &cdn77.OriginHeaders{Custom: nullable.NewNullNullable[map[string]string]()},
-		QueryString:        &cdn77.QueryString{IgnoreType: cdn77.QueryStringIgnoreTypeNone},
-		RateLimit:          &cdn77.RateLimit{},
-		SecureToken:        &cdn77.SecureToken{Type: cdn77.SecureTokenTypeNone},
-		Ssl:                &cdn77.CdnSsl{Type: cdn77.InstantSsl},
-	}
-}
-
-func (r *Resource) deleteAfterFailedEdit(ctx context.Context, diags *diag.Diagnostics, id int) {
-	const errMessage = "Failed to remove CDN after failed edit"
-
-	response, err := r.Client.CdnDeleteWithResponse(ctx, id)
-	if err != nil {
-		diags.AddError(errMessage, err.Error())
-
-		return
-	}
-
-	util.ValidateDeletionResponse(diags, response, errMessage)
 }
 
 func canonicalizeJSON(raw string) (string, error) {

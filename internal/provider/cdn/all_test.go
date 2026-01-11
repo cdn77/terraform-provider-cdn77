@@ -163,7 +163,8 @@ func TestAccCdnAllDataSource(t *testing.T) {
 		return cdnIdAndTestCheckFnFactory[i].id < cdnIdAndTestCheckFnFactory[j].id
 	})
 
-	testCheckFns := []resource.TestCheckFunc{resource.TestCheckResourceAttr(rsc, "cdns.#", "2")}
+	testCheckFns := make([]resource.TestCheckFunc, 0, 64)
+	testCheckFns = append(testCheckFns, resource.TestCheckResourceAttr(rsc, "cdns.#", "2"))
 
 	for i, x := range cdnIdAndTestCheckFnFactory {
 		testCheckFns = append(testCheckFns, x.factory(i)...)
