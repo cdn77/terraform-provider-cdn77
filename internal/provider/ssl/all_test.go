@@ -50,7 +50,8 @@ func TestAccSslAllDataSource(t *testing.T) {
 		return sslIdAndTestCheckFnFactory[i].id < sslIdAndTestCheckFnFactory[j].id
 	})
 
-	testCheckFns := []resource.TestCheckFunc{resource.TestCheckResourceAttr(rsc, "ssls.#", "2")}
+	testCheckFns := make([]resource.TestCheckFunc, 0, 20)
+	testCheckFns = append(testCheckFns, resource.TestCheckResourceAttr(rsc, "ssls.#", "2"))
 
 	for i, x := range sslIdAndTestCheckFnFactory {
 		testCheckFns = append(testCheckFns, x.factory(i)...)
