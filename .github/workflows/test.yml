@@ -17,7 +17,7 @@ jobs:
         runs-on: ubuntu-latest
         timeout-minutes: 5
         steps:
-            -   uses: actions/checkout@v5
+            -   uses: actions/checkout@v6
             -   uses: actions/setup-go@v6
                 with:
                     go-version-file: 'go.mod'
@@ -25,14 +25,14 @@ jobs:
             -   run: go mod download
             -   run: go build -v .
             -   name: Run linters
-                uses: golangci/golangci-lint-action@v6
+                uses: golangci/golangci-lint-action@v9
                 with:
                     version: latest
 
     generate:
         runs-on: ubuntu-latest
         steps:
-            -   uses: actions/checkout@v5
+            -   uses: actions/checkout@v6
             -   uses: actions/setup-go@v6
                 with:
                     go-version-file: 'go.mod'
@@ -60,7 +60,7 @@ jobs:
                 terraform:
                     - 'latest'
         steps:
-            -   uses: actions/checkout@v5
+            -   uses: actions/checkout@v6
             -   uses: actions/setup-go@v6
                 with:
                     go-version-file: 'go.mod'
