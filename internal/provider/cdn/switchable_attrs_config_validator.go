@@ -6,6 +6,7 @@ import (
 	"slices"
 
 	"github.com/cdn77/cdn77-client-go/v2"
+	"github.com/cdn77/terraform-provider-cdn77/internal/util"
 	"github.com/hashicorp/terraform-plugin-framework-validators/helpers/validatordiag"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -20,12 +21,13 @@ var (
 )
 
 type cdnSwitchableAttribute struct {
-	attr                  string
-	switchAttr            string
-	switchValue           any
-	switchDisabledValues  []any
-	controlledAttr        string
-	controlledValueIsNull bool
+	attr                           string
+	switchAttr                     string
+	switchValue                    any
+	switchValueIsUnknown           bool
+	switchDisabledValues           []any
+	controlledAttr                 string
+	controlledValueIsNullOrUnknown bool
 }
 
 type SwitchableAttrsConfigValidator struct{}
@@ -66,11 +68,15 @@ func (v SwitchableAttrsConfigValidator) Validate(ctx context.Context, config tfs
 	}
 
 	for _, switchableAttribute := range v.getSwitchableAttributes(data) {
+		if switchableAttribute.switchValueIsUnknown {
+			continue
+		}
+
 		if !slices.Contains(switchableAttribute.switchDisabledValues, switchableAttribute.switchValue) {
 			continue
 		}
 
-		if switchableAttribute.controlledValueIsNull {
+		if switchableAttribute.controlledValueIsNullOrUnknown {
 			continue
 		}
 
@@ -108,81 +114,88 @@ func (SwitchableAttrsConfigValidator) getSwitchableAttributes(data Model) []cdnS
 
 	if data.GeoProtection != nil {
 		switchableAttributes = append(switchableAttributes, cdnSwitchableAttribute{
-			attr:                  "geo_protection",
-			switchAttr:            "type",
-			switchValue:           data.GeoProtection.Type.ValueString(),
-			switchDisabledValues:  []any{string(cdn77.Disabled)},
-			controlledAttr:        "countries",
-			controlledValueIsNull: data.GeoProtection.Countries.IsNull(),
+			attr:                           "geo_protection",
+			switchAttr:                     "type",
+			switchValue:                    data.GeoProtection.Type.ValueString(),
+			switchValueIsUnknown:           data.GeoProtection.Type.IsUnknown(),
+			switchDisabledValues:           []any{string(cdn77.Disabled)},
+			controlledAttr:                 "countries",
+			controlledValueIsNullOrUnknown: util.IsNullOrUnknown(data.GeoProtection.Countries),
 		})
 	}
 
 	if data.HotlinkProtection != nil {
 		switchableAttributes = append(switchableAttributes, cdnSwitchableAttribute{
-			attr:                  "hotlink_protection",
-			switchAttr:            "type",
-			switchValue:           data.HotlinkProtection.Type.ValueString(),
-			switchDisabledValues:  []any{string(cdn77.Disabled)},
-			controlledAttr:        "domains",
-			controlledValueIsNull: data.HotlinkProtection.Domains.IsNull(),
+			attr:                           "hotlink_protection",
+			switchAttr:                     "type",
+			switchValue:                    data.HotlinkProtection.Type.ValueString(),
+			switchValueIsUnknown:           data.HotlinkProtection.Type.IsUnknown(),
+			switchDisabledValues:           []any{string(cdn77.Disabled)},
+			controlledAttr:                 "domains",
+			controlledValueIsNullOrUnknown: util.IsNullOrUnknown(data.HotlinkProtection.Domains),
 		})
 	}
 
 	if data.HttpsRedirect != nil {
 		switchableAttributes = append(switchableAttributes, cdnSwitchableAttribute{
-			attr:                  "https_redirect",
-			switchAttr:            "enabled",
-			switchValue:           data.HttpsRedirect.Enabled.ValueBool(),
-			switchDisabledValues:  []any{false},
-			controlledAttr:        "code",
-			controlledValueIsNull: data.HttpsRedirect.Code.IsNull(),
+			attr:                           "https_redirect",
+			switchAttr:                     "enabled",
+			switchValue:                    data.HttpsRedirect.Enabled.ValueBool(),
+			switchValueIsUnknown:           data.HttpsRedirect.Enabled.IsUnknown(),
+			switchDisabledValues:           []any{false},
+			controlledAttr:                 "code",
+			controlledValueIsNullOrUnknown: util.IsNullOrUnknown(data.HttpsRedirect.Code),
 		})
 	}
 
 	if data.IpProtection != nil {
 		switchableAttributes = append(switchableAttributes, cdnSwitchableAttribute{
-			attr:                  "ip_protection",
-			switchAttr:            "type",
-			switchValue:           data.IpProtection.Type.ValueString(),
-			switchDisabledValues:  []any{string(cdn77.Disabled)},
-			controlledAttr:        "ips",
-			controlledValueIsNull: data.IpProtection.Ips.IsNull(),
+			attr:                           "ip_protection",
+			switchAttr:                     "type",
+			switchValue:                    data.IpProtection.Type.ValueString(),
+			switchValueIsUnknown:           data.IpProtection.Type.IsUnknown(),
+			switchDisabledValues:           []any{string(cdn77.Disabled)},
+			controlledAttr:                 "ips",
+			controlledValueIsNullOrUnknown: util.IsNullOrUnknown(data.IpProtection.Ips),
 		})
 	}
 
 	if data.QueryString != nil {
 		switchableAttributes = append(switchableAttributes, cdnSwitchableAttribute{
-			attr:        "query_string",
-			switchAttr:  "ignore_type",
-			switchValue: data.QueryString.IgnoreType.ValueString(),
+			attr:                 "query_string",
+			switchAttr:           "ignore_type",
+			switchValue:          data.QueryString.IgnoreType.ValueString(),
+			switchValueIsUnknown: data.QueryString.IgnoreType.IsUnknown(),
 			switchDisabledValues: []any{
 				string(cdn77.QueryStringIgnoreTypeNone),
 				string(cdn77.QueryStringIgnoreTypeAll),
 			},
-			controlledAttr:        "parameters",
-			controlledValueIsNull: data.QueryString.Parameters.IsNull(),
+			controlledAttr:                 "parameters",
+			controlledValueIsNullOrUnknown: util.IsNullOrUnknown(data.QueryString.Parameters),
 		})
 	}
 
 	if data.SecureToken != nil {
 		switchableAttributes = append(switchableAttributes, cdnSwitchableAttribute{
-			attr:                  "secure_token",
-			switchAttr:            "type",
-			switchValue:           data.SecureToken.Type.ValueString(),
-			switchDisabledValues:  []any{string(cdn77.SecureTokenTypeNone)},
-			controlledAttr:        "token",
-			controlledValueIsNull: data.SecureToken.Token.IsNull(),
+			attr:                           "secure_token",
+			switchAttr:                     "type",
+			switchValue:                    data.SecureToken.Type.ValueString(),
+			switchValueIsUnknown:           data.SecureToken.Type.IsUnknown(),
+			switchDisabledValues:           []any{string(cdn77.SecureTokenTypeNone)},
+			controlledAttr:                 "token",
+			controlledValueIsNullOrUnknown: util.IsNullOrUnknown(data.SecureToken.Token),
 		})
 	}
 
 	if data.Ssl != nil {
 		switchableAttributes = append(switchableAttributes, cdnSwitchableAttribute{
-			attr:                  "ssl",
-			switchAttr:            "type",
-			switchValue:           data.Ssl.Type.ValueString(),
-			switchDisabledValues:  []any{string(cdn77.InstantSsl), string(cdn77.None)},
-			controlledAttr:        "ssl_id",
-			controlledValueIsNull: data.Ssl.SslId.IsNull(),
+			attr:                           "ssl",
+			switchAttr:                     "type",
+			switchValue:                    data.Ssl.Type.ValueString(),
+			switchValueIsUnknown:           data.Ssl.Type.IsUnknown(),
+			switchDisabledValues:           []any{string(cdn77.InstantSsl), string(cdn77.None)},
+			controlledAttr:                 "ssl_id",
+			controlledValueIsNullOrUnknown: util.IsNullOrUnknown(data.Ssl.SslId),
 		})
 	}
 

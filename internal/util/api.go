@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/cdn77/cdn77-client-go/v2"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/oapi-codegen/nullable"
@@ -26,8 +27,12 @@ func IntPointerToInt64Value[T ~int](v *T) types.Int64 {
 	return types.Int64Value(int64(*v))
 }
 
+func IsNullOrUnknown(v attr.Value) bool {
+	return v.IsNull() || v.IsUnknown()
+}
+
 func Int64ValueToNullable[T ~int](v types.Int64) nullable.Nullable[T] {
-	if v.IsNull() || v.IsUnknown() {
+	if IsNullOrUnknown(v) {
 		return nullable.NewNullNullable[T]()
 	}
 
@@ -35,7 +40,7 @@ func Int64ValueToNullable[T ~int](v types.Int64) nullable.Nullable[T] {
 }
 
 func Int32ValueToNullable[T ~int](v types.Int32) nullable.Nullable[T] {
-	if v.IsNull() || v.IsUnknown() {
+	if IsNullOrUnknown(v) {
 		return nullable.NewNullNullable[T]()
 	}
 
