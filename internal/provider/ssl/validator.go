@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 
+	"github.com/cdn77/terraform-provider-cdn77/internal/util"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 )
 
@@ -22,7 +23,7 @@ func (noLeadingTrailingWhitespaceValidator) ValidateString(
 	req validator.StringRequest,
 	resp *validator.StringResponse,
 ) {
-	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
+	if util.IsNullOrUnknown(req.ConfigValue) {
 		return
 	}
 

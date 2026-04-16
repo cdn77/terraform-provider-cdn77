@@ -181,7 +181,7 @@ func (UrlAndUrlPartsPlanModifier) PlanModifyString(
 		return
 	}
 
-	if urlPartsObj.IsUnknown() || urlPartsObj.IsNull() {
+	if util.IsNullOrUnknown(urlPartsObj) {
 		return
 	}
 
@@ -262,7 +262,7 @@ func (UrlStringValidator) ValidateString(
 	req validator.StringRequest,
 	resp *validator.StringResponse,
 ) {
-	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
+	if util.IsNullOrUnknown(req.ConfigValue) {
 		return
 	}
 

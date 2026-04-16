@@ -389,7 +389,7 @@ func parseConditionalFeaturesConfig(
 ) (hasConfig bool, ok bool) {
 	configAttr := data.ConditionalFeatures.Configuration
 
-	if configAttr.IsNull() || configAttr.IsUnknown() {
+	if util.IsNullOrUnknown(configAttr) {
 		return false, true
 	}
 
@@ -446,7 +446,7 @@ func parseConditionalFeaturesSecrets(
 ) (hasSecrets bool, ok bool) {
 	secretAttr := data.ConditionalFeatures.Secrets
 
-	if secretAttr.IsNull() || secretAttr.IsUnknown() {
+	if util.IsNullOrUnknown(secretAttr) {
 		data.ConditionalFeatures.Secrets = types.MapNull(types.StringType)
 
 		return false, true
@@ -462,7 +462,7 @@ func parseConditionalFeaturesSecrets(
 	for key, valTyped := range elements {
 		val := valTyped.(types.String)
 
-		if val.IsNull() || val.IsUnknown() {
+		if util.IsNullOrUnknown(val) {
 			continue
 		}
 
