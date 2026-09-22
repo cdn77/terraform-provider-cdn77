@@ -72,7 +72,7 @@ func TestAccOrigin_AllDataSource(t *testing.T) {
 
 	osRequest := cdn77.OriginCreateObjectStorageJSONRequestBody{
 		BucketName: osBucketName,
-		ClusterId:  "842b5641-b641-4723-ac81-f8cc286e288f",
+		ClusterId:  acctest.GetObjectStorageClusters(t).Primary.Id,
 		Label:      osLabel,
 		Note:       nullable.NewNullableWithValue(osNote),
 	}

@@ -12,6 +12,8 @@ import (
 )
 
 func TestAccObjectStoragesDataSource(t *testing.T) {
+	cluster := acctest.GetObjectStorageClusters(t).Primary
+
 	acctest.Run(t, nil, resource.TestStep{
 		Config: objectStoragesDataSourceConfig,
 		ConfigStateChecks: []statecheck.StateCheck{
@@ -19,19 +21,15 @@ func TestAccObjectStoragesDataSource(t *testing.T) {
 				tfjsonpath.New("clusters"),
 				knownvalue.SetPartial([]knownvalue.Check{
 					knownvalue.ObjectExact(map[string]knownvalue.Check{
-						"id": knownvalue.StringRegexp(regexp.MustCompile(
-							`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`,
-						)),
-						"label": knownvalue.StringExact("EU"),
-						"url": knownvalue.StringRegexp(regexp.MustCompile(
-							`^https://([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,}(:\d+)?$`,
-						)),
+						"id":    knownvalue.StringExact(cluster.Id),
+						"label": knownvalue.StringExact(cluster.Label),
+						"url":   knownvalue.StringExact(acctest.ClusterUrl(cluster)),
 						"url_parts": knownvalue.ObjectExact(map[string]knownvalue.Check{
-							"scheme": knownvalue.StringExact("https"),
+							"scheme": knownvalue.StringExact(cluster.Scheme),
 							"host": knownvalue.StringRegexp(regexp.MustCompile(
 								`^([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,}$`,
 							)),
-							"port":      knownvalue.Int64Exact(443),
+							"port":      acctest.ClusterPortKnownValue(cluster),
 							"base_path": knownvalue.Null(),
 						}),
 					}),
@@ -43,10 +41,5 @@ func TestAccObjectStoragesDataSource(t *testing.T) {
 
 const objectStoragesDataSourceConfig = `
 data "cdn77_object_storages" "all" {
-}
-
-locals {
-	eu_cluster_id = one([for os in data.cdn77_object_storages.all.clusters : os.id if os.label == "EU"])
-	us_cluster_id = one([for os in data.cdn77_object_storages.all.clusters : os.id if os.label == "US"])
 }
 `
