@@ -71,7 +71,6 @@ func TestAccOrigin_AllDataSource(t *testing.T) {
 	const osNote = "just a note"
 
 	osRequest := cdn77.OriginCreateObjectStorageJSONRequestBody{
-		Acl:        cdn77.AuthenticatedRead,
 		BucketName: osBucketName,
 		ClusterId:  "842b5641-b641-4723-ac81-f8cc286e288f",
 		Label:      osLabel,

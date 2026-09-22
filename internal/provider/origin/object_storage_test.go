@@ -107,7 +107,8 @@ func TestAccOrigin_ObjectStorageResource(t *testing.T) {
 					cluster_id = local.eu_cluster_id
 					bucket_name = "{bucketName}"
 				}`, "bucketName", bucketName),
-			ConfigPlanChecks: acctest.ConfigPlanChecks(rsc, plancheck.ResourceActionDestroyBeforeCreate),
+			// "acl" is deprecated and inert, so changing it must no longer replace the resource.
+			ConfigPlanChecks: acctest.ConfigPlanChecks(rsc, plancheck.ResourceActionUpdate),
 			Check: resource.ComposeAggregateTestCheckFunc(
 				acctest.CheckAndReassignAttr(rsc, "id", &originId),
 				resource.TestCheckResourceAttr(rsc, "label", bucketName),
@@ -238,6 +239,17 @@ func TestAccOrigin_ObjectStorageResource_Import(t *testing.T) {
 			},
 			ImportStateVerify: true,
 		},
+		resource.TestStep{
+			ResourceName: rsc,
+			ImportState:  true,
+			// "acl" is deprecated, so the identifier may omit it. It is then left unset in the
+			// imported state, which is why it is excluded from the verification.
+			ImportStateIdFunc: func(*terraform.State) (string, error) {
+				return fmt.Sprintf("%s,%s", originId, clusterId), nil
+			},
+			ImportStateVerify:       true,
+			ImportStateVerifyIgnore: []string{"acl"},
+		},
 	)
 }
 
@@ -248,7 +260,6 @@ func TestAccOrigin_ObjectStorageDataSource_OnlyRequiredFields(t *testing.T) {
 	originBucketName := "my-bucket-" + uuid.New().String()
 	label := originBucketName
 	request := cdn77.OriginCreateObjectStorageJSONRequestBody{
-		Acl:        cdn77.AuthenticatedRead,
 		BucketName: originBucketName,
 		ClusterId:  "842b5641-b641-4723-ac81-f8cc286e288f",
 		Label:      label,
@@ -308,7 +319,6 @@ func TestAccOrigin_ObjectStorageDataSource_AllFields(t *testing.T) {
 	originBucketName := "my-bucket-" + uuid.New().String()
 	label := originBucketName
 	request := cdn77.OriginCreateObjectStorageJSONRequestBody{
-		Acl:        cdn77.AuthenticatedRead,
 		BucketName: originBucketName,
 		ClusterId:  "842b5641-b641-4723-ac81-f8cc286e288f",
 		Label:      label,

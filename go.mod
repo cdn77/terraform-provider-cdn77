@@ -3,7 +3,7 @@ module github.com/cdn77/terraform-provider-cdn77
 go 1.25.6
 
 require (
-	github.com/cdn77/cdn77-client-go/v2 v2.1.1
+	github.com/cdn77/cdn77-client-go/v2 v2.2.0
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/terraform-plugin-docs v0.24.0
 	github.com/hashicorp/terraform-plugin-framework v1.17.0

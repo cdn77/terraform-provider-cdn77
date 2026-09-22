@@ -56,7 +56,7 @@ func (r *Resource) Create(ctx context.Context, req resource.CreateRequest, resp 
 
 	var id int
 
-	util.ProcessResponse(diags, response, errMessage, response.JSON201, func(detail *cdn77.CdnSummary) {
+	util.ProcessResponse(diags, response, errMessage, response.JSON201, func(detail *cdn77.Cdn) {
 		id = detail.Id
 		data.Id = types.Int64Value(int64(id))
 		data.CreationTime = types.StringValue(detail.CreationTime.Format(time.DateTime))

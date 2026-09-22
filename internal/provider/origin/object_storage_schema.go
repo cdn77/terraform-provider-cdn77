@@ -39,12 +39,17 @@ type ObjectStorageUsageModel struct {
 func CreateObjectStorageResourceSchema() schema.Schema {
 	s := CreateObjectStorageBaseResourceSchema()
 	s.Attributes["acl"] = schema.StringAttribute{
-		Description: "Object Storage access key ACL",
-		Required:    true,
+		Description: "Object Storage access key ACL. The API no longer uses this value and it has no effect.",
+		// the same message is reused by the data source, where the attribute is read-only, so it
+		// must not tell the reader to change their configuration
+		DeprecationMessage: "The API no longer uses \"acl\" and the value has no effect. " +
+			"The attribute will be removed in a future major release.",
+		// deliberately without RequiresReplace (the field is inert, recreating the bucket over it
+		// would destroy data for nothing) and not Computed (the API has no value to fill in)
+		Optional: true,
 		Validators: []validator.String{
 			stringvalidator.OneOf("authenticated-read", "private", "public-read", "public-read-write"),
 		},
-		PlanModifiers: []planmodifier.String{stringplanmodifier.RequiresReplace()},
 	}
 	s.Attributes["cluster_id"] = schema.StringAttribute{
 		Description:   "ID of the Object Storage storage cluster",

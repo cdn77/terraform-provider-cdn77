@@ -23,7 +23,6 @@ locals {
 resource "cdn77_origin_object_storage" "example" {
   label       = "Assets bucket for example.com"
   bucket_name = "examplecom-static-assets"
-  acl         = "private"
   cluster_id  = local.eu_cluster_id
 }
 ```
@@ -33,13 +32,13 @@ resource "cdn77_origin_object_storage" "example" {
 
 ### Required
 
-- `acl` (String) Object Storage access key ACL
 - `bucket_name` (String) Name of your Object Storage bucket
 - `cluster_id` (String) ID of the Object Storage storage cluster
 - `label` (String) The label helps you to identify your Origin
 
 ### Optional
 
+- `acl` (String, Deprecated) Object Storage access key ACL. The API no longer uses this value and it has no effect.
 - `note` (String) Optional note for the Origin
 
 ### Read-Only
@@ -78,13 +77,14 @@ Import is supported using the following syntax:
 The [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import) can be used, for example:
 
 ```shell
-$ terraform import cdn77_origin_object_storage.example <id>,<acl>,<cluster_id>
+$ terraform import cdn77_origin_object_storage.example <id>,<cluster_id>
 
 # <id> must be the ID (UUID) of the Object Storage Origin
-# <acl> must be ACL type (one of: "authenticated-read", "private", "public-read", "public-read-write")
 # <cluster_id> must be an ID (UUID) of the Object Storage cluster
 
 # Example:
-$ terraform import cdn77_origin_object_storage.example b2d6a7df-18df-4931-8c78-3842bc6e12f0,private,\
+$ terraform import cdn77_origin_object_storage.example b2d6a7df-18df-4931-8c78-3842bc6e12f0,\
 842b5641-b641-4723-ac81-f8cc286e288f
+
+# The legacy <id>,<acl>,<cluster_id> form is still accepted, but "acl" is deprecated and ignored.
 ```
