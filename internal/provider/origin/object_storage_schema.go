@@ -40,8 +40,7 @@ func CreateObjectStorageResourceSchema() schema.Schema {
 	s := CreateObjectStorageBaseResourceSchema()
 	s.Attributes["acl"] = schema.StringAttribute{
 		Description: "Object Storage access key ACL. The API no longer uses this value and it has no effect.",
-		// the same message is reused by the data source, where the attribute is read-only, so it
-		// must not tell the reader to change their configuration
+		// the data source reuses this message, where the attribute is read-only
 		DeprecationMessage: "The API no longer uses \"acl\" and the value has no effect. " +
 			"The attribute will be removed in a future major release.",
 		// deliberately without RequiresReplace (the field is inert, recreating the bucket over it

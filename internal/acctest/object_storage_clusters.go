@@ -16,8 +16,7 @@ import (
 // ClusterEnvVar pins the Object Storage cluster acceptance tests create buckets on.
 const ClusterEnvVar = "CDN77_TEST_OS_CLUSTER"
 
-// ObjectStorageClusters holds the clusters the API offers; Secondary is nil when there is only one,
-// which is why tests must not assume a specific cluster count, label or hostname.
+// ObjectStorageClusters holds the clusters the API offers; Secondary is nil when there is only one.
 type ObjectStorageClusters struct {
 	Primary   cdn77.ObjectStorageCluster
 	Secondary *cdn77.ObjectStorageCluster
@@ -36,8 +35,7 @@ func GetObjectStorageClusters(t *testing.T) ObjectStorageClusters {
 		t.Fatal("no Object Storage cluster available in this environment")
 	}
 
-	// the list can contain clusters that no longer accept new buckets, and nothing in the response
-	// tells them apart, so CDN77_TEST_OS_CLUSTER (label or id) pins the one to use
+	// CDN77_TEST_OS_CLUSTER (label or id) selects the cluster where several are offered
 	if wanted := os.Getenv(ClusterEnvVar); wanted != "" {
 		for _, cluster := range clusters {
 			if cluster.Label == wanted || cluster.Id == wanted {
