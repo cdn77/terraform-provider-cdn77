@@ -8,6 +8,5 @@ locals {
 resource "cdn77_origin_object_storage" "example" {
   label       = "Assets bucket for example.com"
   bucket_name = "examplecom-static-assets"
-  acl         = "private"
   cluster_id  = local.eu_cluster_id
 }

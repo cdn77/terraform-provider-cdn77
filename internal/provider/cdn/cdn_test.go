@@ -32,7 +32,7 @@ func TestAccCdnResource(t *testing.T) {
 	var originId string
 	var cdnCreationTime string
 	var cdnUrl string
-	sslId := acctest.MustAddSslWithCleanup(t, client, testdata.SslCert1, testdata.SslKey)
+	sslId := acctest.MustAddSslWithCleanup(t, client, testdata.SslCert3, testdata.SslKey)
 
 	attrEq := func(key, value string) resource.TestCheckFunc {
 		return resource.TestCheckResourceAttr(rsc, key, value)
@@ -681,7 +681,7 @@ resource "cdn77_cdn" "lorem" {
           },
           {
             type   = "path-suffix"
-            prefix = ".m3u8"
+            suffix = ".m3u8"
           }
         ]
         then = [
@@ -741,7 +741,7 @@ resource "cdn77_cdn" "lorem" {
           },
           {
             type   = "path-suffix"
-            prefix = ".m3u8"
+            suffix = ".m3u8"
           }
         ]
         then = [
@@ -1015,7 +1015,7 @@ func TestAccCdnDataSource_AllFields(t *testing.T) {
 	const cdnLabel = "some cdn"
 	const cdnNote = "some note"
 
-	sslId := acctest.MustAddSslWithCleanup(t, client, testdata.SslCert1, testdata.SslKey)
+	sslId := acctest.MustAddSslWithCleanup(t, client, testdata.SslCert3, testdata.SslKey)
 
 	cdnAddRequest := cdn77.CdnAddJSONRequestBody{
 		Label:    cdnLabel,

@@ -8,6 +8,7 @@ import (
 	"github.com/cdn77/cdn77-client-go/v2"
 	"github.com/cdn77/terraform-provider-cdn77/internal/provider/shared"
 	"github.com/cdn77/terraform-provider-cdn77/internal/util"
+	"github.com/google/uuid"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -39,7 +40,6 @@ func (r *ObjectStorageResource) Create(ctx context.Context, req resource.CreateR
 		Label:      data.Label.ValueString(),
 		Note:       util.StringValueToNullable(data.Note),
 		BucketName: data.BucketName.ValueString(),
-		Acl:        cdn77.AclType(data.Acl.ValueString()),
 		ClusterId:  data.ClusterId.ValueString(),
 	}
 
@@ -119,21 +119,40 @@ func (*ObjectStorageResource) ImportState(
 	req resource.ImportStateRequest,
 	resp *resource.ImportStateResponse,
 ) {
+	// the legacy <id>,<acl>,<cluster_id> form is still accepted, "acl" is only deprecated
 	idParts := strings.Split(req.ID, ",")
-	if len(idParts) != 3 {
+
+	var id, acl, clusterId string
+
+	switch len(idParts) {
+	case 2:
+		id, clusterId = idParts[0], idParts[1]
+	case 3:
+		id, acl, clusterId = idParts[0], idParts[1], idParts[2]
+	}
+
+	// the two forms cannot be told apart by their length alone: "<id>,<acl>" would pass as the
+	// short form and store the ACL as the cluster ID, so both IDs have to be validated
+	if uuid.Validate(id) != nil || uuid.Validate(clusterId) != nil {
 		resp.Diagnostics.AddError(
 			"Invalid Import Identifier",
-			fmt.Sprintf("Expected: <id>,<acl>,<cluster_id>\nGot: %q", req.ID),
+			fmt.Sprintf(
+				"Expected: <id>,<cluster_id>, both UUIDs"+
+					"\nThe deprecated <id>,<acl>,<cluster_id> form is accepted as well."+
+					"\nGot: %q",
+				req.ID,
+			),
 		)
 
 		return
 	}
 
-	id, acl, clusterId := idParts[0], idParts[1], idParts[2]
-
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), id)...)
-	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("acl"), acl)...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("cluster_id"), clusterId)...)
+
+	if acl != "" {
+		resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("acl"), acl)...)
+	}
 }
 
 func (r *ObjectStorageResource) MoveState(context.Context) []resource.StateMover {

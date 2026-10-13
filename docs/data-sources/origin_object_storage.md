@@ -27,7 +27,7 @@ data "cdn77_origin_object_storage" "example" {
 
 ### Read-Only
 
-- `acl` (String) Object Storage access key ACL
+- `acl` (String, Deprecated) Object Storage access key ACL. The API no longer uses this value and it has no effect.
 - `bucket_name` (String) Name of your Object Storage bucket
 - `cluster_id` (String) ID of the Object Storage storage cluster
 - `label` (String) The label helps you to identify your Origin
